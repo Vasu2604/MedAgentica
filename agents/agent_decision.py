@@ -327,77 +327,105 @@ def create_agent_graph():
     
     def run_rag_agent(state: AgentState) -> AgentState:
         """Handle medical knowledge queries using RAG."""
-        # Initialize the RAG agent
-
         print(f"Selected agent: RAG_AGENT")
 
-        rag_agent = MedicalRAG(config)
-        
-        messages = state["messages"]
-        query = state["current_input"]
-        rag_context_limit = config.rag.context_limit
 
-        recent_context = ""
-        for msg in messages[-rag_context_limit:]:# limit controlled from config
-            if isinstance(msg, HumanMessage):
-                # print("######### DEBUG 1:", msg)
-                recent_context += f"User: {msg.content}\n"
-            elif isinstance(msg, AIMessage):
-                # print("######### DEBUG 2:", msg)
-                recent_context += f"Assistant: {msg.content}\n"
-
-        response = rag_agent.process_query(query, chat_history=recent_context)
-        retrieval_confidence = response.get("confidence", 0.0)  # Default to 0.0 if not provided
-
-        print(f"Retrieval Confidence: {retrieval_confidence}")
-        print(f"Sources: {len(response['sources'])}")
-
-        # Check if response indicates insufficient information
-        insufficient_info = False
-        response_content = response["response"]
-        
-        # Extract the content properly based on type
-        if isinstance(response_content, dict) and hasattr(response_content, 'content'):
-            # If it's an AIMessage or similar object with a content attribute
-            response_text = response_content.content
-        else:
-            # If it's already a string
-            response_text = response_content
+        try:
+            rag_agent = MedicalRAG(config)
             
-        print(f"Response text type: {type(response_text)}")
-        print(f"Response text preview: {response_text[:100]}...")
-        
-        if isinstance(response_text, str) and (
-            "I don't have enough information to answer this question based on the provided context" in response_text or 
-            "I don't have enough information" in response_text or 
-            "don't have enough information" in response_text.lower() or
-            "not enough information" in response_text.lower() or
-            "insufficient information" in response_text.lower() or
-            "cannot answer" in response_text.lower() or
-            "unable to answer" in response_text.lower()
-            ):
+            messages = state["messages"]
+            query = state["current_input"]
+            rag_context_limit = config.rag.context_limit
+
+            recent_context = ""
+            for msg in messages[-rag_context_limit:]:
+                if isinstance(msg, HumanMessage):
+                    recent_context += f"User: {msg.content}\n"
+                elif isinstance(msg, AIMessage):
+                    recent_context += f"Assistant: {msg.content}\n"
+
+            # Process the query
+            response = rag_agent.process_query(query, chat_history=recent_context)
             
-            print("RAG response indicates insufficient information")
-            print(f"Response text that triggered insufficient_info: {response_text[:100]}...")
-            insufficient_info = True
+            # Extract confidence and check for insufficient information
+            retrieval_confidence = response.get("confidence", 0.0)
+            print(f"RAG Retrieval Confidence: {retrieval_confidence}")
+            print(f"RAG Min Confidence Threshold: {config.rag.min_retrieval_confidence}")
+            print(f"RAG Sources Found: {len(response.get('sources', []))}")
 
-        print(f"Insufficient info flag set to: {insufficient_info}")
+            # Check if response indicates insufficient information
+            insufficient_info = False
+            response_content = response.get("response", "")
+            
+            # Handle different response types
+            if hasattr(response_content, 'content'):
+                response_text = response_content.content
+            else:
+                response_text = str(response_content)
+                
+            print(f"RAG Response preview: {response_text[:200]}...")
+            
+            # Check for insufficient information indicators
+            insufficient_indicators = [
+                "I don't have enough information",
+                "don't have enough information",
+                "not enough information",
+                "insufficient information",
+                "cannot answer",
+                "unable to answer",
+                "I cannot provide",
+                "I'm unable to provide",
+                "no relevant information",
+                "no information available"
+            ]
+            
+            response_lower = response_text.lower()
+            for indicator in insufficient_indicators:
+                if indicator in response_lower:
+                    print(f"RAG response indicates insufficient information: '{indicator}' found")
+                    insufficient_info = True
+                    break
 
-        # Store RAG output ONLY if confidence is high
-        if retrieval_confidence >= config.rag.min_retrieval_confidence:
-            # response_output = response["response"]
-            response_output = AIMessage(content=response_text)
-        else:
-            response_output = AIMessage(content="")
-        
-        return {
-            **state,
-            "output": response_output,
-            "needs_human_validation": False,  # Assuming no validation needed for RAG responses
-            "retrieval_confidence": retrieval_confidence,
-            "agent_name": "RAG_AGENT",
-            "insufficient_info": insufficient_info
-        }
+            print(f"RAG Insufficient info flag: {insufficient_info}")
+
+            # Determine if we should route to web search
+            should_route_to_web_search = (
+                retrieval_confidence < config.rag.min_retrieval_confidence or 
+                insufficient_info or
+                len(response.get('sources', [])) == 0
+            )
+            
+            print(f"Should route to web search: {should_route_to_web_search}")
+
+            # Store RAG output appropriately
+            if should_route_to_web_search:
+                response_output = AIMessage(content="")  # Empty response to trigger web search
+            else:
+                response_output = AIMessage(content=response_text)
+            
+            return {
+                **state,
+                "output": response_output,
+                "needs_human_validation": False,
+                "retrieval_confidence": retrieval_confidence,
+                "agent_name": "RAG_AGENT",
+                "insufficient_info": insufficient_info
+            }
+            
+        except Exception as e:
+            print(f"RAG Agent Error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Return state that will trigger web search fallback
+            return {
+                **state,
+                "output": AIMessage(content=""),
+                "needs_human_validation": False,
+                "retrieval_confidence": 0.0,
+                "agent_name": "RAG_AGENT",
+                "insufficient_info": True
+            }
 
     # Web Search Processor Node
     def run_web_search_processor_agent(state: AgentState) -> AgentState:
@@ -438,18 +466,23 @@ def create_agent_graph():
         }
 
     # Define Routing Logic
-    def confidence_based_routing(state: AgentState) -> Dict[str, str]:
+    def confidence_based_routing(state: AgentState) -> str:
         """Route based on RAG confidence score and response content."""
-        # Debug prints
-        print(f"Routing check - Retrieval confidence: {state.get('retrieval_confidence', 0.0)}")
-        print(f"Routing check - Insufficient info flag: {state.get('insufficient_info', False)}")
+        retrieval_confidence = state.get('retrieval_confidence', 0.0)
+        insufficient_info = state.get('insufficient_info', False)
         
-        # Redirect if confidence is low or if response indicates insufficient info
-        if (state.get("retrieval_confidence", 0.0) < config.rag.min_retrieval_confidence or 
-            state.get("insufficient_info", False)):
-            print("Re-routed to Web Search Agent due to low confidence or insufficient information...")
-            return "WEB_SEARCH_PROCESSOR_AGENT"  # Correct format
-        return "check_validation"  # No transition needed if confidence is high and info is sufficient
+        print(f"Routing Decision:")
+        print(f"  - Retrieval confidence: {retrieval_confidence}")
+        print(f"  - Min confidence threshold: {config.rag.min_retrieval_confidence}")
+        print(f"  - Insufficient info flag: {insufficient_info}")
+        
+        # Route to web search if confidence is low or info is insufficient
+        if retrieval_confidence < config.rag.min_retrieval_confidence or insufficient_info:
+            print("  - DECISION: Routing to WEB_SEARCH_PROCESSOR_AGENT")
+            return "WEB_SEARCH_PROCESSOR_AGENT"
+        else:
+            print("  - DECISION: Proceeding with RAG response")
+            return "check_validation"
     
     def run_brain_tumor_agent(state: AgentState) -> AgentState:
         """Handle brain MRI image analysis."""
@@ -467,55 +500,99 @@ def create_agent_graph():
     
     def run_chest_xray_agent(state: AgentState) -> AgentState:
         """Handle chest X-ray image analysis."""
-
         current_input = state["current_input"]
-        image_path = current_input.get("image", None)
+        image_path = current_input.get("image", None) if isinstance(current_input, dict) else None
 
         print(f"Selected agent: CHEST_XRAY_AGENT")
+        print(f"Image path: {image_path}")
 
-        # classify chest x-ray into covid or normal
-        predicted_class = AgentConfig.image_analyzer.classify_chest_xray(image_path)
+        if not image_path or not os.path.exists(image_path):
+            response = AIMessage(content="Error: No valid image provided for chest X-ray analysis.")
+            return {
+                **state,
+                "output": response,
+                "needs_human_validation": False,
+                "agent_name": "CHEST_XRAY_AGENT"
+            }
 
-        if predicted_class == "covid19":
-            response = AIMessage(content="The analysis of the uploaded chest X-ray image indicates a **POSITIVE** result for **COVID-19**.")
-        elif predicted_class == "normal":
-            response = AIMessage(content="The analysis of the uploaded chest X-ray image indicates a **NEGATIVE** result for **COVID-19**, i.e., **NORMAL**.")
-        else:
-            response = AIMessage(content="The uploaded image is not clear enough to make a diagnosis / the image is not a medical image.")
+        try:
+            # Classify chest x-ray into covid or normal
+            predicted_class = AgentConfig.image_analyzer.classify_chest_xray(image_path)
+            print(f"Chest X-ray prediction: {predicted_class}")
 
-        # response = AIMessage(content="This would be handled by the chest X-ray agent, analyzing the image.")
+            if predicted_class == "covid19":
+                response = AIMessage(content="The analysis of the uploaded chest X-ray image indicates a **POSITIVE** result for **COVID-19**.")
+            elif predicted_class == "normal":
+                response = AIMessage(content="The analysis of the uploaded chest X-ray image indicates a **NEGATIVE** result for **COVID-19**, i.e., **NORMAL**.")
+            else:
+                response = AIMessage(content="The uploaded image could not be analyzed. Please ensure it's a clear chest X-ray image.")
 
-        return {
-            **state,
-            "output": response,
-            "needs_human_validation": True,  # Medical diagnosis always needs validation
-            "agent_name": "CHEST_XRAY_AGENT"
-        }
-    
+            return {
+                **state,
+                "output": response,
+                "needs_human_validation": True,
+                "agent_name": "CHEST_XRAY_AGENT"
+            }
+            
+        except Exception as e:
+            print(f"Chest X-ray Agent Error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            response = AIMessage(content=f"Error analyzing chest X-ray: {str(e)}. Please try uploading a different image.")
+            return {
+                **state,
+                "output": response,
+                "needs_human_validation": False,
+                "agent_name": "CHEST_XRAY_AGENT"
+            }
+
     def run_skin_lesion_agent(state: AgentState) -> AgentState:
         """Handle skin lesion image analysis."""
-
         current_input = state["current_input"]
-        image_path = current_input.get("image", None)
+        image_path = current_input.get("image", None) if isinstance(current_input, dict) else None
 
         print(f"Selected agent: SKIN_LESION_AGENT")
+        print(f"Image path: {image_path}")
 
-        # classify chest x-ray into covid or normal
-        predicted_mask = AgentConfig.image_analyzer.segment_skin_lesion(image_path)
+        if not image_path or not os.path.exists(image_path):
+            response = AIMessage(content="Error: No valid image provided for skin lesion analysis.")
+            return {
+                **state,
+                "output": response,
+                "needs_human_validation": False,
+                "agent_name": "SKIN_LESION_AGENT"
+            }
 
-        if predicted_mask:
-            response = AIMessage(content="Following is the analyzed **segmented** output of the uploaded skin lesion image:")
-        else:
-            response = AIMessage(content="The uploaded image is not clear enough to make a diagnosis / the image is not a medical image.")
+        try:
+            # Segment skin lesion
+            predicted_mask = AgentConfig.image_analyzer.segment_skin_lesion(image_path)
+            print(f"Skin lesion segmentation result: {predicted_mask is not None}")
 
-        # response = AIMessage(content="This would be handled by the skin lesion agent, analyzing the skin image.")
+            if predicted_mask:
+                response = AIMessage(content="Following is the analyzed **segmented** output of the uploaded skin lesion image:")
+            else:
+                response = AIMessage(content="The uploaded image could not be analyzed. Please ensure it's a clear skin lesion image.")
 
-        return {
-            **state,
-            "output": response,
-            "needs_human_validation": True,  # Medical diagnosis always needs validation
-            "agent_name": "SKIN_LESION_AGENT"
-        }
+            return {
+                **state,
+                "output": response,
+                "needs_human_validation": True,
+                "agent_name": "SKIN_LESION_AGENT"
+            }
+            
+        except Exception as e:
+            print(f"Skin Lesion Agent Error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            response = AIMessage(content=f"Error analyzing skin lesion: {str(e)}. Please try uploading a different image.")
+            return {
+                **state,
+                "output": response,
+                "needs_human_validation": False,
+                "agent_name": "SKIN_LESION_AGENT"
+            }
     
     def handle_human_validation(state: AgentState) -> Dict:
         """Prepare for human validation if needed."""

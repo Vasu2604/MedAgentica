@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 
 from .doc_parser import MedicalDocParser
 from .content_processor import ContentProcessor
-from .vectorstore_qdrant import VectorStore
+from .vectorstore_chroma import ChromaVectorStore as VectorStore
 from .reranker import Reranker
 from .query_expander import QueryExpander
 from .response_generator import ResponseGenerator

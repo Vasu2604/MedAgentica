@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical Assistant</title>
+    <title>Dr. Maya - Your AI Medical Assistant</title>
     <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/chromatography.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -211,6 +211,259 @@
         .message tr:hover {
             background-color: #f0f0f0;
         }
+        
+        /* Enhanced Status Indicators */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator i {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        .status-text {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .status-progress {
+            width: 100%;
+            height: 4px;
+            background-color: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .status-progress-bar {
+            height: 100%;
+            background-color: white;
+            border-radius: 2px;
+            animation: progress 3s ease-in-out infinite;
+        }
+        
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        /* Emergency Alert Styles */
+        .emergency-alert {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            border: 2px solid #ff4757;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            color: white;
+            animation: emergencyPulse 1s infinite;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        
+        .emergency-alert h4 {
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .emergency-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .emergency-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .emergency-btn.call-911 {
+            background-color: #ff4757;
+            color: white;
+            font-size: 1.1em;
+        }
+        
+        .emergency-btn.call-911:hover {
+            background-color: #ff3742;
+            transform: scale(1.05);
+        }
+        
+        .emergency-btn.find-hospital {
+            background-color: white;
+            color: #ff4757;
+        }
+        
+        .emergency-btn.find-hospital:hover {
+            background-color: #f1f2f6;
+        }
+        
+        @keyframes emergencyPulse {
+            0% { box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); }
+            50% { box-shadow: 0 5px 25px rgba(255, 107, 107, 0.8); }
+            100% { box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); }
+        }
+        
+        /* Enhanced Citations */
+        .citations-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .citations-header {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .citation-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .citation-item:last-child {
+            border-bottom: none;
+        }
+        
+        .citation-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+            flex: 1;
+            transition: color 0.3s ease;
+        }
+        
+        .citation-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        
+        .citation-badge {
+            background-color: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        .source-credibility {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 10px;
+        }
+        
+        .credibility-high {
+            color: #28a745;
+        }
+        
+        .credibility-medium {
+            color: #ffc107;
+        }
+        
+        .credibility-low {
+            color: #dc3545;
+        }
+        
+        /* Quick Reply Suggestions */
+        .quick-replies {
+            display: flex;
+            gap: 8px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .quick-reply-btn {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-reply-btn:hover {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        /* Message Reactions */
+        .message-reactions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .reaction-btn {
+            background: none;
+            border: 1px solid #dee2e6;
+            border-radius: 15px;
+            padding: 5px 10px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .reaction-btn:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .reaction-btn.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .typing-dots {
+            display: flex;
+            margin-left: 10px;
+        }
+        
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            margin: 0 2px;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -220,56 +473,56 @@
             <div class="col-md-3 mb-3">
                 <div class="sidebar">
                     <h5>
-                        <i class="fas fa-robot me-2"></i>
-                        Medical Assistant
+                        <i class="fas fa-user-md me-2"></i>
+                        Dr. Maya
                     </h5>
+                    <p class="text-muted small mb-3">Your friendly AI medical companion</p>
                     <div class="agent-info">
-                        <h6>Available Agents</h6>
+                        <h6>🩺 How I Can Help</h6>
                         <ul class="list-unstyled">
-                            <li><i class="fas fa-comment-medical me-2"></i> Medical Conversation Agent</li>
-                            <li><i class="fas fa-database me-2"></i> Medical RAG Agent</li>
-                            <li><i class="fas fa-search me-2"></i> Web Search Agent</li>
+                            <li><i class="fas fa-comments me-2 text-primary"></i> General Health Questions</li>
+                            <li><i class="fas fa-book-medical me-2 text-success"></i> Medical Knowledge Base</li>
+                            <li><i class="fas fa-globe me-2 text-info"></i> Latest Medical Research</li>
                         </ul>
                     </div>
                     <div class="agent-info">
-                        <h6>Computer Vision Agents</h6>
+                        <h6>📸 Medical Image Analysis</h6>
                         <ul class="list-unstyled">
-                            <li><i class="fas fa-brain me-2"></i> Brain Tumor Detection</li>
-                            <li><i class="fas fa-lungs me-2"></i> Chest X-ray Covid-19 Classification</li>
-                            <li><i class="fas fa-allergies me-2"></i> Skin Lesion Segmentation</li>
+                            <li><i class="fas fa-brain me-2 text-danger"></i> Brain Scan Analysis</li>
+                            <li><i class="fas fa-lungs me-2 text-warning"></i> Chest X-ray Evaluation</li>
+                            <li><i class="fas fa-hand-holding-medical me-2 text-purple"></i> Skin Condition Assessment</li>
                         </ul>
                     </div>
                     <div class="agent-info">
-                        <h6>Agent Capabilities</h6>
+                        <h6>✨ What Makes Me Special</h6>
                         <ul class="list-unstyled">
-                            <li><strong>Medical RAG Agent:</strong>
+                            <li><strong>📚 Smart Knowledge Search:</strong>
                                 <ul>
-                                    <li>Docling based parsing to extract text, tables, and images from PDFs</li>
-                                    <li>Embedding markdown formatted text, tables and LLM based image summaries</li>
-                                    <li>LLM based semantic chunking with structural boundaries</li>
-                                    <li>LLM based query expansion with related medical terms</li>
-                                    <li>Qdrant Vector DB hybrid search</li>
-                                    <li>Input-output guardrails for safe responses</li>
-                                    <li>Confidence-based handoff to Web Search to prevent hallucinations</li>
+                                    <li>🔍 I read medical documents and research papers</li>
+                                    <li>🧠 I understand context and medical terminology</li>
+                                    <li>📊 I can interpret medical charts and tables</li>
+                                    <li>🎯 I provide accurate, evidence-based answers</li>
+                                    <li>🔒 I ensure all responses are safe and reliable</li>
                                 </ul>
                             </li>
-                            <li><strong>Human-in-the-loop Verification:</strong>
+                            <li><strong>👩‍⚕️ Professional Verification:</strong>
                                 <ul>
-                                    <li>Human verification for CV agents</li>
+                                    <li>✅ Medical image analysis results are reviewed</li>
+                                    <li>🛡️ Safety checks for all medical advice</li>
                                 </ul>
                             </li>
                         </ul>
                     </div>
                     <div class="agent-info">
-                        <h6>Multi-Agent Orchestration</h6>
+                        <h6>🤝 How I Work</h6>
                         <ul class="list-unstyled">
-                            <li><i class="fas fa-project-diagram me-2"></i> Coordinated interaction between agents</li>
-                            <li><i class="fas fa-tasks me-2"></i> Dynamic task allocation based on capabilities</li>
-                            <li><i class="fas fa-sync-alt me-2"></i> Seamless integration of agent responses</li>
+                            <li><i class="fas fa-heart me-2 text-danger"></i> I coordinate multiple specialists</li>
+                            <li><i class="fas fa-brain me-2 text-primary"></i> I choose the best expert for your question</li>
+                            <li><i class="fas fa-handshake me-2 text-success"></i> I provide comprehensive, unified answers</li>
                         </ul>
                     </div>
-                    <button id="clear-chat" class="btn btn-outline-danger w-100 mt-3">
-                        <i class="fas fa-trash me-2"></i> Clear Conversation
+                    <button id="clear-chat" class="btn btn-outline-primary w-100 mt-3">
+                        <i class="fas fa-refresh me-2"></i> Start New Conversation
                     </button>
                 </div>
             </div>
@@ -279,16 +532,23 @@
                 <div class="chat-container">
                     <div class="chat-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-stethoscope me-2"></i>
-                            Multi-Agent Medical Assistant
+                            <i class="fas fa-user-md me-2 text-primary"></i>
+                            Dr. Maya - Your AI Medical Assistant
                         </h5>
-                        <small class="text-muted">Upload medical images or ask health-related questions</small>
+                        <small class="text-muted">💬 Ask me anything about your health or 📸 upload medical images for analysis</small>
                     </div>
                     
                     <div id="chat-body" class="chat-body">
                         <div class="message assistant-message">
-                            <div class="agent-tag">System</div>
-                            <p>Hello! I'm your medical assistant. You can ask me health-related questions or upload medical images for analysis.</p>
+                            <div class="agent-tag">Dr. Maya</div>
+                            <p>👋 Hello! I'm Dr. Maya, your friendly AI medical assistant. I'm here to help you with:</p>
+                            <ul>
+                                <li>🩺 General health questions and concerns</li>
+                                <li>📚 Medical information from trusted sources</li>
+                                <li>📸 Analysis of medical images (X-rays, scans, skin conditions)</li>
+                                <li>🔍 Latest medical research and findings</li>
+                            </ul>
+                            <p><strong>How can I help you today?</strong> 😊</p>
                         </div>
                     </div>
                     
@@ -310,7 +570,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <textarea id="message-input" class="form-control message-input" rows="1" placeholder="Ask a medical question..."></textarea>
+                                <textarea id="message-input" class="form-control message-input" rows="1" placeholder="💬 Ask Dr. Maya anything about your health..."></textarea>
                             </div>
                             
                             <button type="submit" class="btn btn-primary rounded-circle ms-2" style="width: 40px; height: 40px;">
@@ -990,8 +1250,285 @@
                 console.error('Web Audio API is not supported in this browser');
             }
             
-            // We only maintain display messages
+            // We only maintain display messages and conversation memory
             let displayMessages = [];
+            let conversationMemory = [];
+            
+            // User-friendly agent name mapping
+            const agentNameMapping = {
+                'CONVERSATION_AGENT': 'Dr. Maya',
+                'RAG_AGENT': 'Dr. Maya (Medical Knowledge)',
+                'WEB_SEARCH_PROCESSOR_AGENT': 'Dr. Maya (Latest Research)',
+                'BRAIN_TUMOR_AGENT': 'Dr. Maya (Brain Specialist)',
+                'CHEST_XRAY_AGENT': 'Dr. Maya (Chest Specialist)',
+                'SKIN_LESION_AGENT': 'Dr. Maya (Dermatology)',
+                'HUMAN_VALIDATION': 'Dr. Maya (Verification)',
+                'System': 'Dr. Maya'
+            };
+            
+            // Get friendly agent name
+            function getFriendlyAgentName(agentName) {
+                // Handle multiple agents (e.g., "RAG_AGENT, WEB_SEARCH_PROCESSOR_AGENT")
+                if (agentName.includes(',')) {
+                    const agents = agentName.split(',').map(a => a.trim());
+                    const friendlyNames = agents.map(agent => agentNameMapping[agent] || agent);
+                    return friendlyNames[0]; // Use the first agent's name for simplicity
+                }
+                return agentNameMapping[agentName] || agentName;
+            }
+            
+            // Add message to conversation memory (keep last 4 messages for 2-level follow-up)
+            function addToMemory(role, content, agent = null) {
+                conversationMemory.push({
+                    role: role, // 'user' or 'assistant'
+                    content: content,
+                    agent: agent,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Keep only last 4 messages (2 user + 2 assistant for 2-level follow-up)
+                if (conversationMemory.length > 4) {
+                    conversationMemory = conversationMemory.slice(-4);
+                }
+            }
+            
+            // Get conversation context for follow-up
+            function getConversationContext() {
+                if (conversationMemory.length === 0) return '';
+                
+                let context = '\\n\\nRecent conversation context:\\n';
+                conversationMemory.forEach((msg, index) => {
+                    const role = msg.role === 'user' ? 'Patient' : 'Dr. Maya';
+                    context += `${role}: ${msg.content}\\n`;
+                });
+                
+                return context;
+            }
+            
+            // Check if message is a follow-up question
+            function isFollowUpQuestion(message) {
+                const followUpIndicators = [
+                    'what about', 'and what', 'also', 'additionally', 'furthermore',
+                    'can you explain', 'tell me more', 'what else', 'anything else',
+                    'follow up', 'regarding', 'about that', 'more details',
+                    'expand on', 'elaborate', 'continue', 'go on'
+                ];
+                
+                const lowerMessage = message.toLowerCase();
+                return followUpIndicators.some(indicator => lowerMessage.includes(indicator)) ||
+                       conversationMemory.length > 0; // Any message after the first is potentially a follow-up
+            }
+            
+            // Enhanced citation processing
+            function processEnhancedCitations(response) {
+                // Look for source references in the response
+                const sourcePattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+                const sources = [];
+                let match;
+                
+                while ((match = sourcePattern.exec(response)) !== null) {
+                    sources.push({
+                        title: match[1],
+                        url: match[2],
+                        credibility: assessSourceCredibility(match[2])
+                    });
+                }
+                
+                return sources;
+            }
+            
+            // Assess source credibility based on domain
+            function assessSourceCredibility(url) {
+                const highCredibilityDomains = [
+                    'pubmed.ncbi.nlm.nih.gov', 'nejm.org', 'thelancet.com', 'bmj.com',
+                    'mayoclinic.org', 'who.int', 'cdc.gov', 'nih.gov', 'nature.com',
+                    'sciencedirect.com', 'springer.com', 'wiley.com'
+                ];
+                
+                const mediumCredibilityDomains = [
+                    'webmd.com', 'healthline.com', 'medicalnewstoday.com',
+                    'clevelandclinic.org', 'hopkinsmedicine.org'
+                ];
+                
+                const domain = new URL(url).hostname.toLowerCase();
+                
+                if (highCredibilityDomains.some(d => domain.includes(d))) {
+                    return 'high';
+                } else if (mediumCredibilityDomains.some(d => domain.includes(d))) {
+                    return 'medium';
+                } else {
+                    return 'low';
+                }
+            }
+            
+            // Generate quick reply suggestions based on response
+            function generateQuickReplies(response, agent) {
+                const suggestions = [];
+                
+                if (agent.includes('BRAIN_TUMOR') || response.toLowerCase().includes('brain')) {
+                    suggestions.push('Tell me more about treatment options', 'What are the risk factors?', 'How is this diagnosed?');
+                } else if (agent.includes('CHEST_XRAY') || response.toLowerCase().includes('chest')) {
+                    suggestions.push('What should I do next?', 'How accurate is this?', 'Can you explain the results?');
+                } else if (agent.includes('SKIN_LESION') || response.toLowerCase().includes('skin')) {
+                    suggestions.push('Should I see a dermatologist?', 'What are warning signs?', 'How can I prevent this?');
+                } else {
+                    suggestions.push('Can you explain more?', 'What are my options?', 'Is this serious?', 'Thank you!');
+                }
+                
+                return suggestions.slice(0, 3); // Limit to 3 suggestions
+            }
+            
+            // Add quick reply functionality
+            function addQuickReplyListeners(element) {
+                const quickReplyBtns = element.querySelectorAll('.quick-reply-btn');
+                quickReplyBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        messageInput.value = this.textContent;
+                        messageInput.focus();
+                        // Auto-submit after a short delay
+                        setTimeout(() => {
+                            chatForm.dispatchEvent(new Event('submit'));
+                        }, 500);
+                    });
+                });
+            }
+            
+            // Add message reaction functionality
+            function addReactionListeners(element) {
+                const reactionBtns = element.querySelectorAll('.reaction-btn');
+                reactionBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        // Here you could send feedback to the backend
+                        console.log('Reaction:', this.textContent, 'Active:', this.classList.contains('active'));
+                    });
+                });
+            }
+            
+            // Emergency keywords for detection
+            const emergencyKeywords = [
+                'chest pain', 'heart attack', 'stroke', 'difficulty breathing', 'can\'t breathe',
+                'severe bleeding', 'unconscious', 'seizure', 'overdose', 'suicide',
+                'severe allergic reaction', 'anaphylaxis', 'choking', 'severe burn',
+                'broken bone', 'head injury', 'severe abdominal pain', 'poisoning',
+                'emergency', '911', 'ambulance', 'hospital emergency'
+            ];
+            
+            // Status messages for different operations
+            const statusMessages = {
+                analyzing: {
+                    icon: 'fas fa-brain',
+                    text: 'Dr. Maya is analyzing your question...',
+                    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                },
+                searching: {
+                    icon: 'fas fa-search',
+                    text: 'Searching medical databases...',
+                    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                },
+                processing_image: {
+                    icon: 'fas fa-image',
+                    text: 'Processing your medical image...',
+                    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                },
+                consulting: {
+                    icon: 'fas fa-user-md',
+                    text: 'Consulting medical specialists...',
+                    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+                },
+                finalizing: {
+                    icon: 'fas fa-check-circle',
+                    text: 'Preparing your personalized response...',
+                    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+                }
+            };
+            
+            // Emergency detection function
+            function detectEmergency(message) {
+                const lowerMessage = message.toLowerCase();
+                return emergencyKeywords.some(keyword => lowerMessage.includes(keyword));
+            }
+            
+            // Show emergency alert
+            function showEmergencyAlert() {
+                const emergencyAlert = document.createElement('div');
+                emergencyAlert.className = 'message assistant-message';
+                emergencyAlert.innerHTML = `
+                    <div class="emergency-alert">
+                        <h4><i class="fas fa-exclamation-triangle me-2"></i>🚨 MEDICAL EMERGENCY DETECTED</h4>
+                        <p><strong>If this is a medical emergency, please seek immediate help:</strong></p>
+                        <div class="emergency-actions">
+                            <button class="emergency-btn call-911" onclick="window.open('tel:911')">
+                                <i class="fas fa-phone me-2"></i>CALL 911 NOW
+                            </button>
+                            <button class="emergency-btn find-hospital" onclick="findNearestHospital()">
+                                <i class="fas fa-hospital me-2"></i>Find Nearest Hospital
+                            </button>
+                        </div>
+                        <p class="mt-3 mb-0"><small>⚠️ I'm an AI assistant and cannot replace emergency medical services. For life-threatening situations, always call emergency services immediately.</small></p>
+                    </div>
+                `;
+                chatBody.appendChild(emergencyAlert);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+            
+            // Find nearest hospital function
+            function findNearestHospital() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        window.open(`https://www.google.com/maps/search/hospital+near+me/@${lat},${lng},15z`);
+                    }, function() {
+                        window.open('https://www.google.com/maps/search/hospital+near+me');
+                    });
+                } else {
+                    window.open('https://www.google.com/maps/search/hospital+near+me');
+                }
+            }
+            
+            // Enhanced status indicator function
+            function showEnhancedStatus(type = 'analyzing') {
+                const status = statusMessages[type];
+                const statusElement = document.createElement('div');
+                statusElement.className = 'message assistant-message status-indicator';
+                statusElement.style.background = status.gradient;
+                statusElement.innerHTML = `
+                    <i class="${status.icon}"></i>
+                    <div class="status-text">
+                        ${status.text}
+                        <div class="status-progress">
+                            <div class="status-progress-bar"></div>
+                        </div>
+                    </div>
+                `;
+                return statusElement;
+            }
+            
+            // Cycle through status messages
+            function cycleStatusMessages(statusElement) {
+                const statusTypes = ['analyzing', 'searching', 'consulting', 'finalizing'];
+                let currentIndex = 0;
+                
+                const interval = setInterval(() => {
+                    if (statusElement.parentNode) {
+                        currentIndex = (currentIndex + 1) % statusTypes.length;
+                        const status = statusMessages[statusTypes[currentIndex]];
+                        statusElement.style.background = status.gradient;
+                        statusElement.querySelector('i').className = status.icon;
+                        statusElement.querySelector('.status-text').innerHTML = `
+                            ${status.text}
+                            <div class="status-progress">
+                                <div class="status-progress-bar"></div>
+                            </div>
+                        `;
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 2000);
+                
+                return interval;
+            }
             
             // Auto-resize textarea
             messageInput.addEventListener('input', function() {
@@ -1021,13 +1558,21 @@
                 previewImage.src = '';
             });
             
-            // Clear chat (only visual)
+            // Clear chat (visual and memory)
             clearChatBtn.addEventListener('click', function() {
                 displayMessages = [];
+                conversationMemory = []; // Clear conversation memory
                 chatBody.innerHTML = `
                     <div class="message assistant-message">
-                        <div class="agent-tag">System</div>
-                        <p>Hello! I'm your medical assistant. You can ask me health-related questions or upload medical images for analysis.</p>
+                        <div class="agent-tag">Dr. Maya</div>
+                        <p>👋 Hello! I'm Dr. Maya, your friendly AI medical assistant. I'm here to help you with:</p>
+                        <ul>
+                            <li>🩺 General health questions and concerns</li>
+                            <li>📚 Medical information from trusted sources</li>
+                            <li>📸 Analysis of medical images (X-rays, scans, skin conditions)</li>
+                            <li>🔍 Latest medical research and findings</li>
+                        </ul>
+                        <p><strong>How can I help you today?</strong> 😊</p>
                     </div>
                 `;
             });
@@ -1039,6 +1584,11 @@
                 // Get message from input or transcribed text
                 const message = messageInput.value.trim();
                 if (!message && !imageUpload.files.length) return;
+                
+                // Check for emergency keywords
+                if (message && detectEmergency(message)) {
+                    showEmergencyAlert();
+                }
                 
                 // Store image data if available
                 let imageDataUrl = null;
@@ -1063,15 +1613,16 @@
                 userMessageElement.innerHTML = messageContent;
                 chatBody.appendChild(userMessageElement);
                 
-                // Add thinking indicator
-                const thinkingElement = document.createElement('div');
-                thinkingElement.className = 'message assistant-message thinking';
-                thinkingElement.innerHTML = `
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                `;
-                chatBody.appendChild(thinkingElement);
+                // Add user message to memory
+                addToMemory('user', message);
+                
+                // Add enhanced status indicator
+                const statusType = imageUpload.files.length > 0 ? 'processing_image' : 'analyzing';
+                const statusElement = showEnhancedStatus(statusType);
+                chatBody.appendChild(statusElement);
+                
+                // Start cycling through status messages
+                const statusInterval = cycleStatusMessages(statusElement);
                 
                 // Scroll to bottom
                 chatBody.scrollTop = chatBody.scrollHeight;
@@ -1098,14 +1649,17 @@
                         });
                     } else {
                         // Text-only query using the /chat endpoint with JSON
+                        const queryWithContext = isFollowUpQuestion(message) ? 
+                            message + getConversationContext() : message;
+                            
                         response = await fetch('/chat', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
-                                query: message,
-                                conversation_history: [] // You might want to maintain this if needed
+                                query: queryWithContext,
+                                conversation_history: conversationMemory.slice(-4) // Send recent context
                             }),
                             credentials: 'include' // Important for cookie handling
                         });
@@ -1113,8 +1667,11 @@
                     
                     const data = await response.json();
                     
-                    // Remove thinking indicator
-                    chatBody.removeChild(thinkingElement);
+                    // Remove status indicator and clear interval
+                    clearInterval(statusInterval);
+                    if (statusElement.parentNode) {
+                        chatBody.removeChild(statusElement);
+                    }
                     
                     // Add response to chat
                     const assistantMessageElement = document.createElement('div');
@@ -1123,13 +1680,75 @@
                     // Get clean text for TTS (without markdown)
                     const cleanText = removeMarkdown(data.response);
                     
-                    // Build HTML content for the response with audio controls
+                    // Get friendly agent name and add to memory
+                    const friendlyAgentName = getFriendlyAgentName(data.agent);
+                    addToMemory('assistant', data.response, data.agent);
+                    
+                    // Process enhanced citations
+                    const citations = processEnhancedCitations(data.response);
+                    const quickReplies = generateQuickReplies(data.response, data.agent);
+                    
+                    // Build HTML content for the response with enhanced features
                     let assistantHtml = `
-                        <div class="agent-tag">${data.agent}</div>
+                        <div class="agent-tag">${friendlyAgentName}</div>
                         <div>${marked.parse(data.response)}</div>
+                    `;
+                    
+                    // Add enhanced citations if available
+                    if (citations.length > 0) {
+                        assistantHtml += `
+                            <div class="citations-section">
+                                <div class="citations-header">
+                                    <i class="fas fa-book me-2"></i>📚 Medical Sources & References
+                                </div>
+                        `;
+                        
+                        citations.forEach((citation, index) => {
+                            const credibilityIcon = citation.credibility === 'high' ? '🟢' : 
+                                                   citation.credibility === 'medium' ? '🟡' : '🔴';
+                            const credibilityText = citation.credibility === 'high' ? 'Peer-reviewed' : 
+                                                   citation.credibility === 'medium' ? 'Medical source' : 'General source';
+                            
+                            assistantHtml += `
+                                <div class="citation-item">
+                                    <a href="${citation.url}" target="_blank" class="citation-link">
+                                        ${citation.title}
+                                    </a>
+                                    <span class="source-credibility credibility-${citation.credibility}">
+                                        ${credibilityIcon} ${credibilityText}
+                                    </span>
+                                </div>
+                            `;
+                        });
+                        
+                        assistantHtml += `</div>`;
+                    }
+                    
+                    // Add quick reply suggestions
+                    if (quickReplies.length > 0) {
+                        assistantHtml += `
+                            <div class="quick-replies">
+                                ${quickReplies.map(reply => `
+                                    <button class="quick-reply-btn">${reply}</button>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                    
+                    // Add message reactions
+                    assistantHtml += `
+                        <div class="message-reactions">
+                            <button class="reaction-btn">👍 Helpful</button>
+                            <button class="reaction-btn">❤️ Thank you</button>
+                            <button class="reaction-btn">🤔 Need clarification</button>
+                        </div>
+                    `;
+                    
+                    // Add audio controls
+                    assistantHtml += `
                         <div class="audio-controls mt-2">
                             <button class="btn btn-sm btn-outline-primary play-tts-btn">
-                                <i class="fas fa-play"></i> Play Voice Response
+                                <i class="fas fa-play"></i> 🔊 Listen to Response
                             </button>
                         </div>
                     `;
@@ -1175,6 +1794,10 @@
                     
                     assistantMessageElement.innerHTML = assistantHtml;
                     chatBody.appendChild(assistantMessageElement);
+                    
+                    // Add event listeners for interactive elements
+                    addQuickReplyListeners(assistantMessageElement);
+                    addReactionListeners(assistantMessageElement);
 
                     // Attach validation button events if human validation is required
                     if (data.agent.includes("HUMAN_VALIDATION")) {

@@ -40,17 +40,23 @@ class VectorStore:
             self.logger.error(f"Error checking for collection existence: {e}")
             return False
 
-    def _create_collection(self):
-        """Create a new collection with dense and sparse vectors."""
+    def _create_collection(self, use_sparse=True):
+        """Create a new collection with dense vectors and optionally sparse vectors."""
         try:
+            vectors_config = {"dense": VectorParams(size=self.embedding_dim, distance=Distance.COSINE)}
+            sparse_vectors_config = None
+            
+            if use_sparse:
+                sparse_vectors_config = {
+                    "sparse": SparseVectorParams(index=models.SparseIndexParams(on_disk=False))
+                }
+            
             self.client.create_collection(
                 collection_name=self.collection_name,
-                vectors_config={"dense": VectorParams(size=self.embedding_dim, distance=Distance.COSINE)},
-                sparse_vectors_config={
-                    "sparse": SparseVectorParams(index=models.SparseIndexParams(on_disk=False))
-                },
+                vectors_config=vectors_config,
+                sparse_vectors_config=sparse_vectors_config,
             )
-            self.logger.info(f"Created new collection: {self.collection_name}")
+            self.logger.info(f"Created new collection: {self.collection_name} (sparse: {use_sparse})")
         except Exception as e:
             self.logger.error(f"Error creating collection: {e}")
             raise e
@@ -67,19 +73,36 @@ class VectorStore:
             self.logger.error(f"Collection {self.collection_name} does not exist. Please ingest documents first.")
             raise ValueError(f"Collection {self.collection_name} does not exist")
             
-        # Setup sparse embeddings
-        sparse_embeddings = FastEmbedSparse(model_name="Qdrant/bm25")
+        # Setup sparse embeddings (optional - fallback to dense-only if BM25 fails)
+        try:
+            sparse_embeddings = FastEmbedSparse(model_name="Qdrant/bm25")
+            retrieval_mode = RetrievalMode.HYBRID
+            self.logger.info("Using hybrid retrieval mode with BM25 sparse embeddings")
+        except Exception as e:
+            self.logger.warning(f"Could not load BM25 sparse embeddings: {e}")
+            self.logger.info("Falling back to dense-only retrieval mode")
+            sparse_embeddings = None
+            retrieval_mode = RetrievalMode.DENSE
         
         # Initialize vector store
-        qdrant_vectorstore = QdrantVectorStore(
-            client=self.client,
-            collection_name=self.collection_name,
-            embedding=self.embedding_model,
-            sparse_embedding=sparse_embeddings,
-            retrieval_mode=RetrievalMode.HYBRID,
-            vector_name="dense",
-            sparse_vector_name="sparse",
-        )
+        if sparse_embeddings:
+            qdrant_vectorstore = QdrantVectorStore(
+                client=self.client,
+                collection_name=self.collection_name,
+                embedding=self.embedding_model,
+                sparse_embedding=sparse_embeddings,
+                retrieval_mode=retrieval_mode,
+                vector_name="dense",
+                sparse_vector_name="sparse",
+            )
+        else:
+            qdrant_vectorstore = QdrantVectorStore(
+                client=self.client,
+                collection_name=self.collection_name,
+                embedding=self.embedding_model,
+                retrieval_mode=retrieval_mode,
+                vector_name="dense"
+            )
         
         # Document storage
         docstore = LocalFileStore(self.docstore_local_path)
@@ -121,27 +144,44 @@ class VectorStore:
                 )
             )
         
-        # Setup sparse embeddings
-        sparse_embeddings = FastEmbedSparse(model_name="Qdrant/bm25")
+        # Setup sparse embeddings (optional - fallback to dense-only if BM25 fails)
+        try:
+            sparse_embeddings = FastEmbedSparse(model_name="Qdrant/bm25")
+            retrieval_mode = RetrievalMode.HYBRID
+            self.logger.info("Using hybrid retrieval mode with BM25 sparse embeddings for ingestion")
+        except Exception as e:
+            self.logger.warning(f"Could not load BM25 sparse embeddings for ingestion: {e}")
+            self.logger.info("Falling back to dense-only retrieval mode for ingestion")
+            sparse_embeddings = None
+            retrieval_mode = RetrievalMode.DENSE
         
         # Check if collection exists, create if it doesn't
         collection_exists = self._does_collection_exist()
         if not collection_exists:
-            self._create_collection()
+            self._create_collection(use_sparse=(sparse_embeddings is not None))
             self.logger.info(f"Created new collection: {self.collection_name}")
         else:
             self.logger.info(f"Collection {self.collection_name} already exists, will upsert documents")
         
         # Initialize vector store
-        qdrant_vectorstore = QdrantVectorStore(
-            client=self.client,
-            collection_name=self.collection_name,
-            embedding=self.embedding_model,
-            sparse_embedding=sparse_embeddings,
-            retrieval_mode=RetrievalMode.HYBRID,
-            vector_name="dense",
-            sparse_vector_name="sparse",
-        )
+        if sparse_embeddings:
+            qdrant_vectorstore = QdrantVectorStore(
+                client=self.client,
+                collection_name=self.collection_name,
+                embedding=self.embedding_model,
+                sparse_embedding=sparse_embeddings,
+                retrieval_mode=retrieval_mode,
+                vector_name="dense",
+                sparse_vector_name="sparse",
+            )
+        else:
+            qdrant_vectorstore = QdrantVectorStore(
+                client=self.client,
+                collection_name=self.collection_name,
+                embedding=self.embedding_model,
+                retrieval_mode=retrieval_mode,
+                vector_name="dense"
+            )
         
         # Document storage for parent documents
         docstore = LocalFileStore(self.docstore_local_path)

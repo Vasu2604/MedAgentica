@@ -16,7 +16,7 @@ from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI, OpenAIEmbed
 from langchain_openai import ChatOpenAI
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma, FAISS
-from langchain_pinecone import Pinecone as PineconeVectorStore
+from langchain_community.vectorstores import Pinecone as PineconeVectorStore
 from pinecone import Pinecone
 import chromadb
 
@@ -123,9 +123,12 @@ def create_vectorstore(embedding_model, collection_name="medical_assistance_rag"
         except Exception as e:
             print(f"Warning: Could not create Pinecone index: {e}")
         
-        return PineconeVectorStore.from_existing_index(
-            index_name=index_name,
-            embedding=embedding_model
+        # Get the index and create vectorstore
+        index = pc.Index(index_name)
+        return PineconeVectorStore(
+            index=index,
+            embedding=embedding_model,
+            text_key="text"
         )
     
     elif vector_provider == "chromadb":
@@ -169,8 +172,8 @@ class WebSearchConfig:
 class RAGConfig:
     def __init__(self):
         # Vector database configuration
-        self.vector_db_type = os.getenv("EMBEDDING_PROVIDER", "chromadb").lower()
-        self.embedding_dim = 1536  # Adjust based on your embedding model
+        self.vector_db_type = os.getenv("VECTOR_STORE_PROVIDER", "chromadb").lower()
+        self.embedding_dim = 384  # sentence-transformers/all-MiniLM-L6-v2 dimension
         self.distance_metric = "Cosine"
         self.use_local = True
         self.vector_local_path = "./data/qdrant_db"  # Keep for Qdrant compatibility
@@ -207,9 +210,12 @@ class RAGConfig:
         self.include_sources = True  # Show links to reference documents and images along with corresponding query response
 
         # ADJUST ACCORDING TO ASSISTANT'S BEHAVIOUR BASED ON THE DATA INGESTED:
-        self.min_retrieval_confidence = 0.40  # The auto routing from RAG agent to WEB_SEARCH agent is dependent on this value
-
-        self.context_limit = 20     # include last 20 messsages (10 Q&A pairs) in history
+        self.min_retrieval_confidence = 0.20  # Lower this if RAG is too restrictive
+        
+        # Add debug flag
+        self.debug_mode = True  # Set to False in production
+        
+        self.context_limit = 20
     
     def get_vectorstore(self):
         """
