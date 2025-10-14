@@ -163,7 +163,7 @@ packaging==24.2
 pandas==2.2.3
 pandocfilters==1.5.1
 parso==0.8.4
-pdfminer.six==20240706
+# pdfminer.six - version managed by pdfplumber dependency
 pi_heif==0.22.0
 pickleshare==0.7.5
 pikepdf==9.5.2

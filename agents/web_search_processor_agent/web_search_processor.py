@@ -60,15 +60,53 @@ class WebSearchProcessor:
 
         # print(f"[WebSearchProcessor] Fetched results: {web_results}")
         
-        # Construct prompt to LLM for processing the results
-        llm_prompt = (
-            "You are an AI assistant specialized in medical information. Below are web search results "
-            "retrieved for a user query. Summarize and generate a helpful, concise response. "
-            "Use reliable sources only and ensure medical accuracy.\n\n"
-            f"Query: {query}\n\nWeb Search Results:\n{web_results}\n\nResponse:"
-        )
-        
-        # Invoke the LLM to process the results
-        response = self.llm.invoke(llm_prompt)
-        
-        return response
+        # Construct prompt to LLM for processing the results with proper formatting and citations
+        llm_prompt = f"""You are a compassionate and professional medical doctor providing clear, accurate medical information to patients.
+
+🌟 **RESPONSE REQUIREMENTS:**
+- **Maximum 300 characters** - Keep responses concise but complete
+- **Polite & Empathetic** - Speak with warmth and genuine care for the patient's wellbeing
+- **Clear & Simple** - Use everyday language, avoid medical jargon or explain it simply
+- **Informative** - Provide essential facts without overwhelming details
+- **Professional** - Speak as a caring physician would - confident yet humble
+
+📋 **CONTENT GUIDELINES:**
+- Answer the query directly and helpfully
+- Include key facts from reliable sources with proper citations
+- Cite sources using [1], [2], etc. format (e.g., "According to recent studies [1][2]...")
+- If uncertain, acknowledge limitations and suggest professional consultation
+- Always prioritize patient safety and well-being
+
+🔍 **User Query:** {query}
+
+📚 **Medical Information from Reliable Sources:**
+{web_results}
+
+📝 **Your Response (as a caring physician, include citations):**"""
+
+        # Invoke the LLM to process the results with error handling
+        try:
+            response = self.llm.invoke(llm_prompt)
+
+            # Ensure response is under 300 characters
+            response_text = response.content if hasattr(response, 'content') else str(response)
+            if len(response_text) > 300:
+                response_text = response_text[:297] + "..."
+
+            return response_text
+
+        except Exception as e:
+            print(f"[WebSearchProcessor] LLM error: {e}")
+            # Fallback to a simple summary if LLM fails
+            if web_results and len(web_results) > 0:
+                # Extract key information from search results
+                fallback_response = f"""Based on current web search results, here's what I found about "{query}":
+
+🔍 **Key Findings:**
+{web_results[:300]}
+
+💡 **Recommendation:** For the most current and detailed information, I recommend consulting reliable medical sources or speaking with a healthcare professional. The information above is based on recent web searches and may evolve as new research emerges."""
+
+                return fallback_response[:300] + "..." if len(fallback_response) > 300 else fallback_response
+            else:
+                return f"Unable to retrieve current information about '{query}'. Please consult with a healthcare professional for the latest medical guidance."

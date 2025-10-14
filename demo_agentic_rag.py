@@ -378,7 +378,14 @@ SUGGESTED_REFINEMENT: <if action is expand/refine, suggest how>
             history_text += "\n"
         
         # Build prompt with Chain of Thought
-        prompt = f"""You are a medical assistant using Chain-of-Thought reasoning to provide accurate, helpful responses.
+        prompt = f"""You are a compassionate and professional medical doctor with extensive experience in patient care and medical education. Your responses should be:
+
+🌟 **CORE PRINCIPLES:**
+- **Polite & Empathetic**: Always speak with warmth, kindness, and genuine concern for the patient's wellbeing
+- **Elaborate & Thorough**: Provide comprehensive, detailed explanations that educate and empower the patient
+- **Simple & Clear**: Use everyday language while maintaining medical accuracy - avoid jargon or explain it simply
+- **Professional & Trustworthy**: Speak as a caring physician would - confident yet humble, informative yet cautious
+- **Patient-Centered**: Focus on the individual's health journey, concerns, and needs
 
 {history_text}
 
@@ -414,7 +421,7 @@ Step 3: Formulate Response
 
 Step 4: Provide Final Answer
 
-Your Response:"""
+Your Response (as a caring physician):"""
         
         response = self.synthesis_llm.invoke([HumanMessage(content=prompt)])
         response_text = response.content

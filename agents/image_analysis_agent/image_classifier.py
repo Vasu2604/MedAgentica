@@ -5,6 +5,8 @@ from mimetypes import guess_type
 
 from typing import TypedDict
 from langchain_core.output_parsers import JsonOutputParser
+from .chest_xray_agent.covid_chest_xray_inference import ChestXRayClassification
+import logging
 
 class ClassificationDecision(TypedDict):
     """Output structure for the decision agent."""
@@ -14,10 +16,36 @@ class ClassificationDecision(TypedDict):
 
 class ImageClassifier:
     """Uses GPT-4o Vision to analyze images and determine their type."""
-    
-    def __init__(self, vision_model):
+
+    def __init__(self, vision_model, chest_xray_model_path=None, skin_lesion_model_path=None, brain_tumor_model_path=None):
         self.vision_model = vision_model
         self.json_parser = JsonOutputParser(pydantic_object=ClassificationDecision)
+
+        # Initialize trained models
+        self.chest_xray_classifier = None
+        self.skin_lesion_classifier = None
+        self.brain_tumor_classifier = None
+
+        if chest_xray_model_path and os.path.exists(chest_xray_model_path):
+            try:
+                self.chest_xray_classifier = ChestXRayClassification(chest_xray_model_path)
+                print(f"[ImageAnalyzer] Chest X-ray model loaded from {chest_xray_model_path}")
+            except Exception as e:
+                print(f"[ImageAnalyzer] Failed to load chest X-ray model: {e}")
+
+        if skin_lesion_model_path and os.path.exists(skin_lesion_model_path):
+            try:
+                # Initialize skin lesion model (would need similar class)
+                print(f"[ImageAnalyzer] Skin lesion model path provided: {skin_lesion_model_path}")
+            except Exception as e:
+                print(f"[ImageAnalyzer] Failed to load skin lesion model: {e}")
+
+        if brain_tumor_model_path and os.path.exists(brain_tumor_model_path):
+            try:
+                # Initialize brain tumor model (would need similar class)
+                print(f"[ImageAnalyzer] Brain tumor model path provided: {brain_tumor_model_path}")
+            except Exception as e:
+                print(f"[ImageAnalyzer] Failed to load brain tumor model: {e}")
         
     def local_image_to_data_url(self, image_path: str) -> str:
         """Get the url of a local image"""
@@ -158,3 +186,18 @@ class ImageClassifier:
             }
 
         # return response.content.strip().lower()
+
+    def classify_chest_xray(self, image_path: str) -> str:
+        """Classify chest X-ray using the trained model."""
+        if not self.chest_xray_classifier:
+            print("[ImageAnalyzer] Chest X-ray classifier not loaded")
+            return "unknown"
+
+        try:
+            print(f"[ImageAnalyzer] Classifying chest X-ray: {image_path}")
+            prediction = self.chest_xray_classifier.predict(image_path)
+            print(f"[ImageAnalyzer] Chest X-ray prediction: {prediction}")
+            return prediction
+        except Exception as e:
+            print(f"[ImageAnalyzer] Error classifying chest X-ray: {e}")
+            return "unknown"

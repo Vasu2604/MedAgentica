@@ -29,19 +29,35 @@ config = Config()
 # Initialize FastAPI app
 app = FastAPI(title="Multi-Agent Medical Chatbot", version="2.0")
 
-# Set up directories
-UPLOAD_FOLDER = "uploads/backend"
-FRONTEND_UPLOAD_FOLDER = "uploads/frontend"
-SKIN_LESION_OUTPUT = "uploads/skin_lesion_output"
-SPEECH_DIR = "uploads/speech"
+# Get the project root directory
+import pathlib
+project_root = pathlib.Path(__file__).parent.parent.absolute()
+
+# Set up directories with absolute paths
+UPLOAD_FOLDER = project_root / "uploads/backend"
+FRONTEND_UPLOAD_FOLDER = project_root / "uploads/frontend"
+SKIN_LESION_OUTPUT = project_root / "uploads/skin_lesion_output"
+SPEECH_DIR = project_root / "uploads/speech"
 
 # Create directories if they don't exist
 for directory in [UPLOAD_FOLDER, FRONTEND_UPLOAD_FOLDER, SKIN_LESION_OUTPUT, SPEECH_DIR]:
     os.makedirs(directory, exist_ok=True)
 
+# Convert back to strings for compatibility
+UPLOAD_FOLDER = str(UPLOAD_FOLDER)
+FRONTEND_UPLOAD_FOLDER = str(FRONTEND_UPLOAD_FOLDER)
+SKIN_LESION_OUTPUT = str(SKIN_LESION_OUTPUT)
+SPEECH_DIR = str(SPEECH_DIR)
+
 # Mount static files directory
-app.mount("/data", StaticFiles(directory="data"), name="data")
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+data_dir = project_root / "data"
+uploads_dir = project_root / "uploads"
+
+# Only mount if directories exist
+if data_dir.exists():
+    app.mount("/data", StaticFiles(directory=str(data_dir)), name="data")
+if uploads_dir.exists():
+    app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 # Set up templates
 templates = Jinja2Templates(directory="templates")
@@ -114,14 +130,27 @@ def chat(
         result = {
             "status": "success",
             "response": response_text, 
-            "agent": response_data["agent_name"]
+            "agent": response_data["agent_name"],
+            "thinking": f"🤔 Analyzing your request...\n📋 Selected: {response_data['agent_name'].replace('_', ' ').title()}",
+            "confidence": response_data.get('retrieval_confidence', 0.95) if 'retrieval_confidence' in response_data else 0.95
         }
         
+        # Add suggested follow-ups based on agent type
+        agent_name = response_data["agent_name"].lower()
+        if 'rag' in agent_name:
+            result["suggestions"] = ["Can you explain more?", "What are the treatment options?", "Are there any side effects?"]
+        elif 'web' in agent_name:
+            result["suggestions"] = ["Show me latest research", "What are current guidelines?", "Any recent updates?"]
+        elif 'medical' in agent_name or 'xray' in agent_name or 'lesion' in agent_name:
+            result["suggestions"] = ["Is this serious?", "What should I do next?", "Should I see a doctor?"]
+        else:
+            result["suggestions"] = ["Tell me more", "What are my options?", "How can I prevent this?"]
+        
         # If it's the skin lesion segmentation agent, check for output image
-        if response_data["agent_name"] == "SKIN_LESION_AGENT, HUMAN_VALIDATION":
-            segmentation_path = os.path.join(SKIN_LESION_OUTPUT, "segmentation_plot.png")
+        if "SKIN_LESION" in response_data["agent_name"]:
+            segmentation_path = os.path.join(SKIN_LESION_OUTPUT, "overlayed_plot.png")
             if os.path.exists(segmentation_path):
-                result["result_image"] = f"/uploads/skin_lesion_output/segmentation_plot.png"
+                result["result_image"] = f"/uploads/skin_lesion_output/overlayed_plot.png"
             else:
                 print("Skin Lesion Output path does not exist.")
         
@@ -182,14 +211,19 @@ async def upload_image(
         result = {
             "status": "success",
             "response": response_text, 
-            "agent": response_data["agent_name"]
+            "agent": response_data["agent_name"],
+            "thinking": f"🖼️ Analyzing image...\n📋 Selected: {response_data['agent_name'].replace('_', ' ').title()}",
+            "confidence": 0.95
         }
         
+        # Add suggested follow-ups for image analysis
+        result["suggestions"] = ["Is this serious?", "What should I do next?", "Should I see a doctor?"]
+        
         # If it's the skin lesion segmentation agent, check for output image
-        if response_data["agent_name"] == "SKIN_LESION_AGENT, HUMAN_VALIDATION":
-            segmentation_path = os.path.join(SKIN_LESION_OUTPUT, "segmentation_plot.png")
+        if "SKIN_LESION" in response_data["agent_name"]:
+            segmentation_path = os.path.join(SKIN_LESION_OUTPUT, "overlayed_plot.png")
             if os.path.exists(segmentation_path):
-                result["result_image"] = f"/uploads/skin_lesion_output/segmentation_plot.png"
+                result["result_image"] = f"/uploads/skin_lesion_output/overlayed_plot.png"
             else:
                 print("Skin Lesion Output path does not exist.")
         

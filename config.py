@@ -26,39 +26,65 @@ load_dotenv()
 def create_llm(temperature=0.7):
     """
     Create LLM instance based on configuration.
-    Supports OpenRouter.ai (DeepSeek R1) and OpenAI.
+    Supports Groq, OpenRouter.ai, and OpenAI.
     """
-    # Check if OpenRouter is configured
-    openrouter_api_key = os.getenv("openrouter_api_key")
-    openrouter_model = os.getenv("openrouter_model", "deepseek/deepseek-chat-v3.1:free")
+    # Check if Groq is configured (highest priority)
+    groq_api_key = os.getenv("GROQ_API_KEY") or os.getenv("groq_api_key")
+    groq_model = os.getenv("GROQ_MODEL") or os.getenv("groq_model") or "llama-3.3-70b-versatile"
     
-    if openrouter_api_key and openrouter_api_key != "YOUR_OPENROUTER_API_KEY":
-        # Use OpenRouter.ai with DeepSeek R1
+    if groq_api_key and groq_api_key.startswith("gsk_"):
+        # Use Groq
+        return ChatOpenAI(
+            model=groq_model,
+            api_key=groq_api_key,
+            base_url="https://api.groq.com/openai/v1",
+            temperature=temperature
+        )
+    
+    # Check if OpenRouter is configured (try both uppercase and lowercase)
+    openrouter_api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("openrouter_api_key")
+    openrouter_model = os.getenv("OPENROUTER_MODEL") or os.getenv("openrouter_model") or "deepseek/deepseek-chat-v3.1:free"
+    
+    if openrouter_api_key and openrouter_api_key != "YOUR_OPENROUTER_API_KEY" and not openrouter_api_key.startswith("gsk_"):
+        # Use OpenRouter.ai
         return ChatOpenAI(
             model=openrouter_model,
             api_key=openrouter_api_key,
             base_url="https://openrouter.ai/api/v1",
             temperature=temperature
         )
-    else:
-        # Fallback to OpenAI or Azure OpenAI
-        openai_api_key = os.getenv("openai_api_key")
-        if openai_api_key and openai_api_key != "YOUR_OPENAI_API_KEY":
-            return ChatOpenAI(
-                model=os.getenv("openai_model", "gpt-4o"),
-                api_key=openai_api_key,
-                temperature=temperature
-            )
-        else:
-            # Use Azure OpenAI as fallback
-            return AzureChatOpenAI(
-                deployment_name=os.getenv("deployment_name"),
-                model_name=os.getenv("model_name", "gpt-4o"),
-                azure_endpoint=os.getenv("azure_endpoint"),
-                openai_api_key=os.getenv("openai_api_key"),
-                openai_api_version=os.getenv("openai_api_version"),
-                temperature=temperature
-            )
+    
+    # Fallback to OpenAI (try both uppercase and lowercase)
+    openai_api_key = os.getenv("OPENAI_API_KEY") or os.getenv("openai_api_key")
+    if openai_api_key and openai_api_key != "YOUR_OPENAI_API_KEY" and not openai_api_key.startswith("gsk_"):
+        return ChatOpenAI(
+            model=os.getenv("OPENAI_MODEL") or os.getenv("openai_model") or "gpt-4o",
+            api_key=openai_api_key,
+            temperature=temperature
+        )
+    
+    # Use Azure OpenAI as fallback
+    azure_api_key = os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("azure_openai_api_key")
+    if azure_api_key and azure_api_key != "YOUR_OPENAI_API_KEY":
+        return AzureChatOpenAI(
+            deployment_name=os.getenv("deployment_name"),
+            model_name=os.getenv("model_name", "gpt-4o"),
+            azure_endpoint=os.getenv("azure_endpoint"),
+            openai_api_key=azure_api_key,
+            openai_api_version=os.getenv("openai_api_version"),
+            temperature=temperature
+        )
+    
+    # No API keys found - provide helpful error message
+    raise ValueError(
+        "\n\n❌ No LLM API keys found!\n\n"
+        "Please set one of the following in your .env file:\n"
+        "  • GROQ_API_KEY (fast & free!)\n"
+        "  • OPENROUTER_API_KEY\n"
+        "  • OPENAI_API_KEY\n"
+        "  • AZURE_OPENAI_API_KEY\n\n"
+        "See demo_env_template.txt for reference.\n"
+    )
 
 def create_embedding_model():
     """
@@ -99,6 +125,9 @@ def create_vectorstore(embedding_model, collection_name="medical_assistance_rag"
     Create vector store based on configuration.
     Supports Pinecone, ChromaDB, FAISS, and Qdrant.
     """
+    # Get the project root directory
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    
     vector_provider = os.getenv("VECTOR_STORE_PROVIDER", "pinecone").lower()
     
     if vector_provider == "pinecone":
@@ -132,7 +161,8 @@ def create_vectorstore(embedding_model, collection_name="medical_assistance_rag"
         )
     
     elif vector_provider == "chromadb":
-        persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./data/chroma_db")
+        default_path = os.path.join(project_root, "data/chroma_db")
+        persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", default_path)
         return Chroma(
             collection_name=collection_name,
             embedding_function=embedding_model,
@@ -140,7 +170,8 @@ def create_vectorstore(embedding_model, collection_name="medical_assistance_rag"
         )
     
     elif vector_provider == "faiss":
-        persist_directory = os.getenv("FAISS_PERSIST_DIRECTORY", "./data/faiss_db")
+        default_path = os.path.join(project_root, "data/faiss_db")
+        persist_directory = os.getenv("FAISS_PERSIST_DIRECTORY", default_path)
         return FAISS.load_local(
             persist_directory,
             embedding_model,
@@ -149,14 +180,15 @@ def create_vectorstore(embedding_model, collection_name="medical_assistance_rag"
     
     else:
         # Default to ChromaDB
-        persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", "./data/chroma_db")
+        default_path = os.path.join(project_root, "data/chroma_db")
+        persist_directory = os.getenv("CHROMA_PERSIST_DIRECTORY", default_path)
         return Chroma(
             collection_name=collection_name,
             embedding_function=embedding_model,
             persist_directory=persist_directory
         )
 
-class AgentDecisoinConfig:
+class AgentDecisionConfig:
     def __init__(self):
         self.llm = create_llm(temperature=0.1)  # Deterministic
 
@@ -171,14 +203,17 @@ class WebSearchConfig:
 
 class RAGConfig:
     def __init__(self):
+        # Get the project root directory (where config.py is located)
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        
         # Vector database configuration
         self.vector_db_type = os.getenv("VECTOR_STORE_PROVIDER", "chromadb").lower()
         self.embedding_dim = 384  # sentence-transformers/all-MiniLM-L6-v2 dimension
         self.distance_metric = "Cosine"
         self.use_local = True
-        self.vector_local_path = "./data/qdrant_db"  # Keep for Qdrant compatibility
-        self.doc_local_path = "./data/docs_db"
-        self.parsed_content_dir = "./data/parsed_docs"
+        self.vector_local_path = os.path.join(project_root, "data/qdrant_db")  # Keep for Qdrant compatibility
+        self.doc_local_path = os.path.join(project_root, "data/docs_db")
+        self.parsed_content_dir = os.path.join(project_root, "data/parsed_docs")
         
         # Qdrant configuration (for backward compatibility)
         self.url = os.getenv("QDRANT_URL")
@@ -225,10 +260,14 @@ class RAGConfig:
 
 class MedicalCVConfig:
     def __init__(self):
-        self.brain_tumor_model_path = "./agents/image_analysis_agent/brain_tumor_agent/models/brain_tumor_segmentation.pth"
-        self.chest_xray_model_path = "./agents/image_analysis_agent/chest_xray_agent/models/covid_chest_xray_model.pth"
-        self.skin_lesion_model_path = "./agents/image_analysis_agent/skin_lesion_agent/models/checkpointN25_.pth.tar"
-        self.skin_lesion_segmentation_output_path = "./uploads/skin_lesion_output/segmentation_plot.png"
+        # Get the project root directory (where config.py is located)
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        
+        # Use absolute paths to model files
+        self.brain_tumor_model_path = os.path.join(project_root, "agents/image_analysis_agent/brain_tumor_agent/models/brain_tumor_segmentation.pth")
+        self.chest_xray_model_path = os.path.join(project_root, "agents/image_analysis_agent/chest_xray_agent/models/covid_chest_xray_model.pth")
+        self.skin_lesion_model_path = os.path.join(project_root, "agents/image_analysis_agent/skin_lesion_agent/models/checkpointN25_.pth.tar")
+        self.skin_lesion_segmentation_output_path = os.path.join(project_root, "uploads/skin_lesion_output/overlayed_plot.png")
         self.llm = create_llm(temperature=0.1)  # Keep deterministic for classification tasks
 
 class SpeechConfig:
@@ -266,7 +305,7 @@ class UIConfig:
 
 class Config:
     def __init__(self):
-        self.agent_decision = AgentDecisoinConfig()
+        self.agent_decision = AgentDecisionConfig()
         self.conversation = ConversationConfig()
         self.rag = RAGConfig()
         self.medical_cv = MedicalCVConfig()

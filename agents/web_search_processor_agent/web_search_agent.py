@@ -1,28 +1,36 @@
 import requests
 from typing import Dict
 
-from .pubmed_search import PubmedSearchAgent
-from .tavily_search import TavilySearchAgent
+from .tavily_search import TavilySearchAgent, DuckDuckGoSearchAgent
 
 class WebSearchAgent:
     """
     Agent responsible for retrieving real-time medical information from web sources.
     """
-    
+
     def __init__(self, config):
+        # Try Tavily first, fall back to DuckDuckGo
         self.tavily_search_agent = TavilySearchAgent()
-        
-        # self.pubmed_search_agent = PubmedSearchAgent()
-        # self.pubmed_api_url = config.pubmed_api_url
-    
+        self.duckduckgo_search_agent = DuckDuckGoSearchAgent()
+
     def search(self, query: str) -> str:
         """
-        Perform both general and medical-specific searches.
+        Perform web searches using available search engines.
         """
         # print(f"[WebSearchAgent] Searching for: {query}")
-        
-        tavily_results = self.tavily_search_agent.search_tavily(query=query)
-        # pubmed_results = self.pubmed_search_agent.search_pubmed(self.pubmed_api_url, query)
-        
-        return f"Tavily Results:\n{tavily_results}\n"
-        # \nPubMed Results:\n{pubmed_results}"
+
+        # Try Tavily first
+        try:
+            tavily_results = self.tavily_search_agent.search_tavily(query=query)
+            if tavily_results and not tavily_results.startswith("Error"):
+                return f"Web Search Results:\n{tavily_results}"
+        except Exception as e:
+            print(f"Tavily search failed: {e}")
+
+        # Fall back to DuckDuckGo
+        try:
+            duckduckgo_results = self.duckduckgo_search_agent.search_duckduckgo(query=query)
+            return f"Web Search Results:\n{duckduckgo_results}"
+        except Exception as e:
+            print(f"DuckDuckGo search failed: {e}")
+            return f"Web Search Results:\nError retrieving search results: {e}"

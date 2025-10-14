@@ -18,7 +18,7 @@ from typing import List, Dict, Any
 from pathlib import Path
 from pinecone import Pinecone, ServerlessSpec
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Pinecone as PineconeVectorStore
+from langchain_pinecone import PineconeVectorStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader
 from langchain.schema import Document
@@ -198,9 +198,6 @@ class PineconeDataIngestion:
             logger.info("📤 Uploading to Pinecone...")
             
             total_chunks = len(chunks)
-            # Get the Pinecone index
-            index = self.pc.Index(self.index_name)
-            
             for i in range(0, total_chunks, batch_size):
                 batch = chunks[i:i + batch_size]
                 
@@ -208,8 +205,7 @@ class PineconeDataIngestion:
                 vectorstore = PineconeVectorStore.from_documents(
                     documents=batch,
                     embedding=self.embeddings,
-                    index_name=self.index_name,
-                    namespace=""
+                    index_name=self.index_name
                 )
                 
                 logger.info(f"   ✓ Uploaded batch {i // batch_size + 1}: {i + 1}-{min(i + batch_size, total_chunks)} of {total_chunks}")

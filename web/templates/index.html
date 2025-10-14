@@ -1,2198 +1,1264 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dr. Maya - Your AI Medical Assistant</title>
-    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/chromatography.png">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>MedAgentica - AI Medical Assistant</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
     <style>
-        body {
-            background-color: #f5f5f5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        :root {
+            --base-dark: #0B1021;
+            --base-darker: #0D132B;
+            --base-navy: #111827;
+            --glass-surface: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --violet: #7C3AED;
+            --fuchsia: #EC4899;
+            --emerald: #10B981;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --error: #EF4444;
         }
-        .chat-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: #fff;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            height: 90vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid #eaeaea;
-            background-color: #f8f9fa;
-            border-top-left-radius: 15px;
-            border-top-right-radius: 15px;
-        }
-        .chat-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-footer {
-            padding: 15px;
-            border-top: 1px solid #eaeaea;
-            background-color: #f8f9fa;
-            border-bottom-left-radius: 15px;
-            border-bottom-right-radius: 15px;
-        }
-        .message {
-            max-width: 80%;
-            margin-bottom: 15px;
-            padding: 10px 15px;
-            border-radius: 15px;
-            position: relative;
-        }
-        .user-message {
-            background-color: #e3f2fd;
-            color: #000;
-            align-self: flex-end;
-            border-bottom-right-radius: 0;
-        }
-        .assistant-message {
-            background-color: #f5f5f5;
-            color: #000;
-            align-self: flex-start;
-            border-bottom-left-radius: 0;
-        }
-        .agent-tag {
-            display: inline-block;
-            background-color: #ebf5ff;
-            color: #0d6efd;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .message-input {
-            border-radius: 20px;
-            padding: 10px 15px;
-            resize: none;
-        }
-        .file-upload-container {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-        .file-upload-btn {
-            border: none;
-            color: white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-        }
-        .file-upload-input {
-            position: absolute;
-            top: 0;
-            right: 0;
+        
+        * {
             margin: 0;
             padding: 0;
-            font-size: 20px;
-            cursor: pointer;
-            opacity: 0;
-            filter: alpha(opacity=0);
+            box-sizing: border-box;
         }
-        .preview-container {
-            margin-top: 10px;
-            display: none;
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--base-dark);
+            color: #FFFFFF;
+            overflow-x: hidden;
+            position: relative;
         }
-        .preview-image {
-            max-width: 100px;
-            max-height: 100px;
-            border-radius: 5px;
-        }
-        .result-image {
-            max-width: 300px;
-            max-height: 300px;
-            border-radius: 5px;
-            margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        .image-side-by-side {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .image-container {
-            flex: 1;
-            min-width: 200px;
-        }
-        .image-caption {
-            font-size: 0.85em;
-            text-align: center;
-            margin-top: 5px;
-            color: #666;
-        }
-        .thinking {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-        }
-        .dot {
-            height: 8px;
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
             width: 8px;
-            margin-right: 5px;
-            background-color: #0d6efd;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.3);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(124, 58, 237, 0.5);
+        }
+        
+        /* Animated Background */
+        .aurora-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0B1021 0%, #0D132B 50%, #111827 100%);
+        }
+        
+        .aurora-background::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 40px),
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 40px);
+            animation: grid-move 20s linear infinite;
+        }
+        
+        @keyframes grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, 40px); }
+        }
+        
+        .aurora-orb {
+            position: absolute;
             border-radius: 50%;
-            display: inline-block;
-            animation: pulse 1.5s infinite ease-in-out;
+            filter: blur(60px);
+            opacity: 0.3;
+            animation: float 20s ease-in-out infinite;
         }
-        .dot:nth-child(2) {
-            animation-delay: 0.3s;
+        
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, var(--violet), transparent);
+            top: 10%;
+            left: 20%;
+            animation-delay: 0s;
         }
-        .dot:nth-child(3) {
-            animation-delay: 0.6s;
+        
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--fuchsia), transparent);
+            top: 50%;
+            right: 10%;
+            animation-delay: 5s;
         }
-        @keyframes pulse {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.8); opacity: 0.5; }
+        
+        .orb-3 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, var(--emerald), transparent);
+            bottom: 10%;
+            left: 40%;
+            animation-delay: 10s;
         }
-        .sidebar {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            height: 90vh;
-            overflow-y: auto;
-        }
-        .sidebar h5 {
-            margin-bottom: 15px;
-            border-bottom: 1px solid #eaeaea;
-            padding-bottom: 10px;
-        }
-        .agent-info {
-            margin-bottom: 15px;
-        }
-        .agent-info h6 {
-            color: #0d6efd;
-        }
-        @media (max-width: 768px) {
-            .sidebar {
-                height: auto;
-                margin-bottom: 15px;
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            25% {
+                transform: translate(50px, -50px) scale(1.1);
+            }
+            50% {
+                transform: translate(-30px, 30px) scale(0.9);
+            }
+            75% {
+                transform: translate(30px, 50px) scale(1.05);
             }
         }
         
-        /* Table styling for markdown tables */
-        .message table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 10px 0;
-            font-size: 0.9em;
-        }
-        
-        .message th, .message td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        
-        .message th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        
-        .message tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .message tr:hover {
-            background-color: #f0f0f0;
-        }
-        
-        /* Enhanced Status Indicators */
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            border-radius: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            margin-bottom: 15px;
-            animation: pulse 2s infinite;
-        }
-        
-        .status-indicator i {
-            margin-right: 10px;
-            font-size: 1.2em;
-        }
-        
-        .status-text {
-            flex: 1;
-            font-weight: 500;
-        }
-        
-        .status-progress {
-            width: 100%;
-            height: 4px;
-            background-color: rgba(255,255,255,0.3);
-            border-radius: 2px;
-            margin-top: 8px;
+        /* Glassmorphism */
+        .glass-panel {
+            background: var(--glass-surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
             overflow: hidden;
         }
         
-        .status-progress-bar {
-            height: 100%;
-            background-color: white;
-            border-radius: 2px;
-            animation: progress 3s ease-in-out infinite;
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
         }
         
-        @keyframes progress {
-            0% { width: 0%; }
-            50% { width: 70%; }
-            100% { width: 100%; }
+        /* Typography */
+        .heading-display {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
         }
         
-        /* Emergency Alert Styles */
-        .emergency-alert {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-            border: 2px solid #ff4757;
-            border-radius: 15px;
-            padding: 20px;
-            margin: 15px 0;
-            color: white;
-            animation: emergencyPulse 1s infinite;
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, var(--violet) 0%, var(--fuchsia) 50%, var(--emerald) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
-        .emergency-alert h4 {
-            color: white;
-            margin-bottom: 15px;
-        }
-        
-        .emergency-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .emergency-btn {
-            padding: 10px 20px;
+        /* Button Styles */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--violet), var(--fuchsia));
             border: none;
-            border-radius: 25px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .emergency-btn.call-911 {
-            background-color: #ff4757;
-            color: white;
-            font-size: 1.1em;
-        }
-        
-        .emergency-btn.call-911:hover {
-            background-color: #ff3742;
-            transform: scale(1.05);
-        }
-        
-        .emergency-btn.find-hospital {
-            background-color: white;
-            color: #ff4757;
-        }
-        
-        .emergency-btn.find-hospital:hover {
-            background-color: #f1f2f6;
-        }
-        
-        @keyframes emergencyPulse {
-            0% { box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); }
-            50% { box-shadow: 0 5px 25px rgba(255, 107, 107, 0.8); }
-            100% { box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4); }
-        }
-        
-        /* Enhanced Citations */
-        .citations-section {
-            margin-top: 20px;
-            padding: 15px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 10px;
-            border-left: 4px solid #007bff;
-        }
-        
-        .citations-header {
-            font-weight: bold;
-            color: #495057;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .citation-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .citation-item:last-child {
-            border-bottom: none;
-        }
-        
-        .citation-link {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: 500;
-            flex: 1;
-            transition: color 0.3s ease;
-        }
-        
-        .citation-link:hover {
-            color: #0056b3;
-            text-decoration: underline;
-        }
-        
-        .citation-badge {
-            background-color: #007bff;
-            color: white;
-            padding: 2px 8px;
+            padding: 12px 28px;
             border-radius: 12px;
-            font-size: 0.8em;
-            margin-left: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
         }
         
-        .source-credibility {
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        /* Chat Container */
+        .chat-container {
+            position: relative;
+            z-index: 10;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Message Bubbles */
+        .message {
+            margin-bottom: 16px;
+            animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .message-assistant {
+            display: flex;
+            justify-content: flex-start;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 16px 20px;
+            border-radius: 20px;
+            position: relative;
+            backdrop-filter: blur(20px);
+        }
+        
+        .message-bubble-user {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(236, 72, 153, 0.2));
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            margin-left: auto;
+        }
+        
+        .message-bubble-assistant {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Agent Badge */
+        .agent-badge {
             display: inline-flex;
             align-items: center;
-            margin-left: 10px;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            backdrop-filter: blur(10px);
         }
         
-        .credibility-high {
-            color: #28a745;
+        .agent-conversation {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--emerald);
         }
         
-        .credibility-medium {
-            color: #ffc107;
+        .agent-rag {
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            color: var(--violet);
         }
         
-        .credibility-low {
-            color: #dc3545;
+        .agent-web {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3B82F6;
         }
         
-        /* Quick Reply Suggestions */
-        .quick-replies {
+        .agent-medical {
+            background: rgba(236, 72, 153, 0.2);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            color: var(--fuchsia);
+        }
+        
+        /* Input Area */
+        .input-container {
+            position: relative;
             display: flex;
-            gap: 8px;
-            margin: 15px 0;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 14px 20px;
+            color: white;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            resize: none;
+            max-height: 120px;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--violet);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        /* KPI Stats */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .kpi-card {
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-top: 8px;
+            background: linear-gradient(135deg, var(--violet), var(--fuchsia), var(--emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .kpi-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Loading Animation */
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+        
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--violet);
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .loading-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+        
+        /* Icon Styles */
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .icon-btn:hover {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: var(--violet);
+            transform: translateY(-2px);
+        }
+        
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 32px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--violet), var(--fuchsia));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            margin-bottom: 48px;
+            padding: 40px 0;
+        }
+        
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+        
+        .hero-title {
+            font-size: 56px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+        
+        .hero-subtitle {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+        
+        .feature-badges {
+            display: flex;
+            gap: 12px;
             flex-wrap: wrap;
         }
         
-        .quick-reply-btn {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
+        .feature-badge {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 8px 15px;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .quick-reply-btn:hover {
-            background-color: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        
-        /* Message Reactions */
-        .message-reactions {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-        }
-        
-        .reaction-btn {
-            background: none;
-            border: 1px solid #dee2e6;
-            border-radius: 15px;
-            padding: 5px 10px;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .reaction-btn:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .reaction-btn.active {
-            background-color: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        
-        /* Typing Indicator */
-        .typing-indicator {
+            font-size: 13px;
+            font-weight: 500;
             display: flex;
             align-items: center;
-            padding: 10px 15px;
-            color: #6c757d;
-            font-style: italic;
+            gap: 6px;
         }
         
-        .typing-dots {
-            display: flex;
-            margin-left: 10px;
-        }
-        
-        .typing-dot {
+        .status-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background-color: #6c757d;
-            margin: 0 2px;
-            animation: typingBounce 1.4s infinite ease-in-out;
+            background: var(--success);
+            animation: pulse 2s infinite;
         }
         
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
         
-        @keyframes typingBounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+        /* Chat Messages Area */
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            
+            .hero-title {
+                font-size: 40px;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .message-bubble {
+                max-width: 85%;
+            }
+        }
+        
+        /* Image Preview */
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            margin-top: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* File Upload Area */
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .file-upload-area:hover {
+            border-color: var(--violet);
+            background: rgba(124, 58, 237, 0.05);
+        }
+        
+        .file-upload-area.drag-over {
+            border-color: var(--fuchsia);
+            background: rgba(236, 72, 153, 0.1);
+        }
+        
+        /* Hidden Elements */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Code blocks */
+        .message-bubble pre {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+        
+        .message-bubble code {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            font-size: 14px;
+        }
+        
+        .message-bubble :not(pre) > code {
+            background: rgba(124, 58, 237, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        /* Lists in messages */
+        .message-bubble ul, .message-bubble ol {
+            padding-left: 20px;
+            margin: 12px 0;
+        }
+        
+        .message-bubble li {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        
+        .message-bubble p {
+            margin: 8px 0;
+            line-height: 1.7;
+        }
+        
+        .message-bubble strong {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+        }
+        
+        /* Copy button */
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .message-bubble:hover .copy-btn {
+            opacity: 1;
+        }
+        
+        .copy-btn:hover {
+            background: rgba(124, 58, 237, 0.3);
+            border-color: var(--violet);
+        }
+        
+        .copy-btn.copied {
+            background: rgba(34, 197, 94, 0.3);
+            border-color: var(--success);
+        }
+        
+        /* Validation Buttons */
+        .validation-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .btn-validate {
+            flex: 1;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-yes {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+        
+        .btn-yes:hover {
+            background: rgba(34, 197, 94, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .btn-no {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+        
+        .btn-no:hover {
+            background: rgba(239, 68, 68, 0.3);
+            transform: translateY(-2px);
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 mb-3">
-                <div class="sidebar">
-                    <h5>
-                        <i class="fas fa-user-md me-2"></i>
-                        Dr. Maya
-                    </h5>
-                    <p class="text-muted small mb-3">Your friendly AI medical companion</p>
-                    <div class="agent-info">
-                        <h6>🩺 How I Can Help</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="fas fa-comments me-2 text-primary"></i> General Health Questions</li>
-                            <li><i class="fas fa-book-medical me-2 text-success"></i> Medical Knowledge Base</li>
-                            <li><i class="fas fa-globe me-2 text-info"></i> Latest Medical Research</li>
-                        </ul>
-                    </div>
-                    <div class="agent-info">
-                        <h6>📸 Medical Image Analysis</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="fas fa-brain me-2 text-danger"></i> Brain Scan Analysis</li>
-                            <li><i class="fas fa-lungs me-2 text-warning"></i> Chest X-ray Evaluation</li>
-                            <li><i class="fas fa-hand-holding-medical me-2 text-purple"></i> Skin Condition Assessment</li>
-                        </ul>
-                    </div>
-                    <div class="agent-info">
-                        <h6>✨ What Makes Me Special</h6>
-                        <ul class="list-unstyled">
-                            <li><strong>📚 Smart Knowledge Search:</strong>
-                                <ul>
-                                    <li>🔍 I read medical documents and research papers</li>
-                                    <li>🧠 I understand context and medical terminology</li>
-                                    <li>📊 I can interpret medical charts and tables</li>
-                                    <li>🎯 I provide accurate, evidence-based answers</li>
-                                    <li>🔒 I ensure all responses are safe and reliable</li>
-                                </ul>
-                            </li>
-                            <li><strong>👩‍⚕️ Professional Verification:</strong>
-                                <ul>
-                                    <li>✅ Medical image analysis results are reviewed</li>
-                                    <li>🛡️ Safety checks for all medical advice</li>
-                                </ul>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="agent-info">
-                        <h6>🤝 How I Work</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="fas fa-heart me-2 text-danger"></i> I coordinate multiple specialists</li>
-                            <li><i class="fas fa-brain me-2 text-primary"></i> I choose the best expert for your question</li>
-                            <li><i class="fas fa-handshake me-2 text-success"></i> I provide comprehensive, unified answers</li>
-                        </ul>
-                    </div>
-                    <button id="clear-chat" class="btn btn-outline-primary w-100 mt-3">
-                        <i class="fas fa-refresh me-2"></i> Start New Conversation
-                    </button>
-                </div>
+    <!-- Animated Background -->
+    <div class="aurora-background">
+        <div class="aurora-orb orb-1"></div>
+        <div class="aurora-orb orb-2"></div>
+        <div class="aurora-orb orb-3"></div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="chat-container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="logo">
+                <div class="logo-icon">🏥</div>
+                <span class="logo-text gradient-text">MedAgentica</span>
             </div>
-            
-            <!-- Chat Container -->
-            <div class="col-md-9">
-                <div class="chat-container">
-                    <div class="chat-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-user-md me-2 text-primary"></i>
-                            Dr. Maya - Your AI Medical Assistant
-                        </h5>
-                        <small class="text-muted">💬 Ask me anything about your health or 📸 upload medical images for analysis</small>
+            <div style="display: flex; gap: 12px;">
+                <button class="icon-btn" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m0-12a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"></path>
+                    </svg>
+                            </button>
+                        </div>
+        </nav>
+        
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="hero-content">
+                <div>
+                    <h1 class="hero-title heading-display">
+                        Your AI-Powered<br>
+                        <span class="gradient-text">Medical Assistant</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Advanced multi-agent system powered by cutting-edge AI. Get instant medical insights, image analysis, and research-backed answers.
+                    </p>
+                    <div class="feature-badges">
+                        <div class="feature-badge">
+                            <span class="status-dot"></span>
+                            Multi-Agent System
                     </div>
-                    
-                    <div id="chat-body" class="chat-body">
-                        <div class="message assistant-message">
-                            <div class="agent-tag">Dr. Maya</div>
-                            <p>👋 Hello! I'm Dr. Maya, your friendly AI medical assistant. I'm here to help you with:</p>
-                            <ul>
-                                <li>🩺 General health questions and concerns</li>
-                                <li>📚 Medical information from trusted sources</li>
-                                <li>📸 Analysis of medical images (X-rays, scans, skin conditions)</li>
-                                <li>🔍 Latest medical research and findings</li>
-                            </ul>
-                            <p><strong>How can I help you today?</strong> 😊</p>
+                        <div class="feature-badge">
+                            <span class="status-dot"></span>
+                            Real-time Analysis
+                        </div>
+                        <div class="feature-badge">
+                            <span class="status-dot"></span>
+                            RAG Powered
                         </div>
                     </div>
-                    
-                    <div class="chat-footer">
-                        <form id="chat-form" class="d-flex align-items-end">
-                            <div class="file-upload-container me-2">
-                                <button type="button" class="file-upload-btn btn btn-primary">
-                                    <i class="fas fa-paperclip"></i>
-                                </button>
-                                <input type="file" class="file-upload-input" id="image-upload" accept="image/*">
-                            </div>
-                            
-                            <div class="flex-grow-1">
-                                <div class="preview-container" id="preview-container">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <img id="preview-image" class="preview-image me-2" src="">
-                                        <button type="button" class="btn btn-sm btn-outline-danger" id="remove-image">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <textarea id="message-input" class="form-control message-input" rows="1" placeholder="💬 Ask Dr. Maya anything about your health..."></textarea>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary rounded-circle ms-2" style="width: 40px; height: 40px;">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </form>
+                </div>
+                
+                <!-- KPI Stats -->
+                <div class="kpi-grid">
+                    <div class="glass-panel kpi-card">
+                        <div class="kpi-label">Active Agents</div>
+                        <div class="kpi-value" id="kpi-agents">6</div>
+                    </div>
+                    <div class="glass-panel kpi-card">
+                        <div class="kpi-label">Queries Processed</div>
+                        <div class="kpi-value" id="kpi-queries">0</div>
+                    </div>
+                    <div class="glass-panel kpi-card">
+                        <div class="kpi-label">Avg Response Time</div>
+                        <div class="kpi-value" id="kpi-latency">~2s</div>
+                    </div>
+                    <div class="glass-panel kpi-card">
+                        <div class="kpi-label">Success Rate</div>
+                        <div class="kpi-value" id="kpi-success">98%</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
-    <script>
-
-        // let mediaRecorder;
-        // let audioChunks = [];
-        // let isRecording = false;
-        // let audioContext;
-        // let currentAudio = null;  // Store a single audio instance
-        // // let elevenlabsApiKey = 'sk_4c9d3dfca9e183c7e8a7c0b9c6f7483e074ded17251e5fe7'; // Replace with your actual API key
-        // let selectedVoiceId = '21m00Tcm4TlvDq8ikWAM'; // Default voice ID (Rachel)
-
-        // document.addEventListener('DOMContentLoaded', function() {
-        //     const chatBody = document.getElementById('chat-body');
-        //     const chatForm = document.getElementById('chat-form');
-        //     const messageInput = document.getElementById('message-input');
-        //     const imageUpload = document.getElementById('image-upload');
-        //     const previewContainer = document.getElementById('preview-container');
-        //     const previewImage = document.getElementById('preview-image');
-        //     const removeImageBtn = document.getElementById('remove-image');
-        //     const clearChatBtn = document.getElementById('clear-chat');
-
-        //     // Add voice recording button to the UI
-        //     const fileUploadContainer = document.querySelector('.file-upload-container');
-        //     // const voiceButtonHTML = `
-        //     //     <button type="button" class="btn btn-warning rounded-circle ms-2" id="voice-record-btn" style="width: 40px; height: 40px;">
-        //     //         <i class="fas fa-microphone"></i>
-        //     //     </button>
-        //     // `;
-        //     const voiceButtonHTML = `
-        //         <button type="button" class="btn btn-warning rounded-circle ms-2 me-2" id="voice-record-btn" style="width: 40px; height: 40px;">
-        //             <i class="fas fa-microphone"></i>
-        //         </button>
-        //     `;
-        //     fileUploadContainer.insertAdjacentHTML('afterend', voiceButtonHTML);
+        
+        <!-- Chat Panel -->
+        <div class="glass-panel" style="flex: 1; display: flex; flex-direction: column; padding: 24px; min-height: 500px;">
+            <!-- Messages Area -->
+            <div class="messages-area" id="messages-area">
+                <!-- Welcome Message -->
+                <div class="message message-assistant">
+                    <div>
+                        <div class="agent-badge agent-conversation">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10"/>
+                            </svg>
+                            System
+                        </div>
+                        <div class="message-bubble message-bubble-assistant">
+                            <p style="line-height: 1.6;">
+                                👋 Welcome to <strong>MedAgentica</strong>! I'm your AI medical assistant powered by multiple specialized agents:
+                            </p>
+                            <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.8;">
+                                <li><strong>💬 Conversation Agent</strong> - General health discussions</li>
+                                <li><strong>📚 RAG Agent</strong> - Medical knowledge queries</li>
+                                <li><strong>🌐 Web Search Agent</strong> - Latest medical research</li>
+                                <li><strong>🧠 Brain Tumor Agent</strong> - MRI analysis</li>
+                                <li><strong>🫁 Chest X-ray Agent</strong> - COVID-19 detection</li>
+                                <li><strong>🩺 Skin Lesion Agent</strong> - Skin condition analysis</li>
+                            </ul>
+                            <p style="margin-top: 12px; font-style: italic; opacity: 0.8;">
+                                How can I assist you today?
+                            </p>
+                    </div>
+                    </div>
+                </div>
+            </div>
             
-        //     const voiceRecordBtn = document.getElementById('voice-record-btn');
+            <!-- File Upload Area -->
+            <div class="file-upload-area hidden" id="file-upload-area">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto 12px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 8px;">Drop your medical image here or click to upload</p>
+                <p style="color: rgba(255, 255, 255, 0.4); font-size: 13px;">Supports: PNG, JPG, JPEG</p>
+                <input type="file" id="file-input" accept="image/png,image/jpeg,image/jpg" style="display: none;">
+            </div>
             
-        //     // Voice recording functionality
-        //     voiceRecordBtn.addEventListener('click', toggleRecording);
-            
-        //     // Initialize audio context
-        //     try {
-        //         window.AudioContext = window.AudioContext || window.webkitAudioContext;
-        //         audioContext = new AudioContext();
-        //     } catch (e) {
-        //         console.error('Web Audio API is not supported in this browser');
-        //     }
-            
-        //     // We no longer need to store conversation history in frontend
-        //     // Only maintain display messages
-        //     let displayMessages = [];
-            
-        //     // Auto-resize textarea
-        //     messageInput.addEventListener('input', function() {
-        //         this.style.height = 'auto';
-        //         this.style.height = (this.scrollHeight) + 'px';
-        //     });
-            
-        //     // Handle image upload
-        //     imageUpload.addEventListener('change', function(e) {
-        //         if (e.target.files.length > 0) {
-        //             const file = e.target.files[0];
-        //             const reader = new FileReader();
-                    
-        //             reader.onload = function(e) {
-        //                 previewImage.src = e.target.result;
-        //                 previewContainer.style.display = 'block';
-        //             };
-                    
-        //             reader.readAsDataURL(file);
-        //         }
-        //     });
-            
-        //     // Remove image preview
-        //     removeImageBtn.addEventListener('click', function() {
-        //         imageUpload.value = '';
-        //         previewContainer.style.display = 'none';
-        //         previewImage.src = '';
-        //     });
-            
-        //     // Clear chat (only visual)
-        //     clearChatBtn.addEventListener('click', function() {
-        //         displayMessages = [];
-        //         chatBody.innerHTML = `
-        //             <div class="message assistant-message">
-        //                 <div class="agent-tag">System</div>
-        //                 <p>Hello! I'm your medical assistant. You can ask me health-related questions or upload medical images for analysis.</p>
-        //             </div>
-        //         `;
-        //     });
-            
-        //     // Handle form submission
-        //     chatForm.addEventListener('submit', async function(e) {
-        //         e.preventDefault();
-                
-        //         // Get message from input or transcribed text
-        //         const message = messageInput.value.trim();
-        //         if (!message && !imageUpload.files.length) return;
-                
-        //         // Store image data if available
-        //         let imageDataUrl = null;
-        //         if (imageUpload.files.length > 0) {
-        //             imageDataUrl = previewImage.src;
-        //         }
-                
-        //         // Add user message to chat
-        //         const userMessageElement = document.createElement('div');
-        //         userMessageElement.className = 'message user-message';
-                
-        //         // Create message content with image if available
-        //         let messageContent = `<p>${message}</p>`;
-        //         if (imageDataUrl) {
-        //             messageContent += `
-        //                 <div class="mt-2">
-        //                     <img src="${imageDataUrl}" alt="Uploaded image" class="img-fluid rounded" style="max-height: 200px;">
-        //                 </div>
-        //             `;
-        //         }
-                
-        //         userMessageElement.innerHTML = messageContent;
-        //         chatBody.appendChild(userMessageElement);
-                
-        //         // Add thinking indicator
-        //         const thinkingElement = document.createElement('div');
-        //         thinkingElement.className = 'message assistant-message thinking';
-        //         thinkingElement.innerHTML = `
-        //             <div class="dot"></div>
-        //             <div class="dot"></div>
-        //             <div class="dot"></div>
-        //         `;
-        //         chatBody.appendChild(thinkingElement);
-                
-        //         // Scroll to bottom
-        //         chatBody.scrollTop = chatBody.scrollHeight;
-                
-        //         // Clear input
-        //         messageInput.value = '';
-        //         messageInput.style.height = 'auto';
-                
-        //         // Create form data
-        //         const formData = new FormData();
-        //         formData.append('message', message);
-                
-        //         // Add image if available
-        //         if (imageUpload.files.length > 0) {
-        //             formData.append('file', imageUpload.files[0]);
-        //         }
-                
-        //         try {
-        //             // Send to backend
-        //             const response = await fetch('/send_message', {
-        //                 method: 'POST',
-        //                 body: formData,
-        //                 credentials: 'include' // Important for cookie handling
-        //             });
-                    
-        //             const data = await response.json();
-                    
-        //             // Remove thinking indicator
-        //             chatBody.removeChild(thinkingElement);
-                    
-        //             // Add response to chat
-        //             const assistantMessageElement = document.createElement('div');
-        //             assistantMessageElement.className = 'message assistant-message';
-                    
-        //             // Get clean text for TTS (without markdown)
-        //             const cleanText = removeMarkdown(data.response);
-                    
-        //             // Build HTML content for the response with audio controls
-        //             let assistantHtml = `
-        //                 <div class="agent-tag">${data.agent}</div>
-        //                 <div>${marked.parse(data.response)}</div>
-        //                 <div class="audio-controls mt-2">
-        //                     <button class="btn btn-sm btn-outline-primary play-tts-btn">
-        //                         <i class="fas fa-play"></i> Play Voice Response
-        //                     </button>
-        //                 </div>
-        //             `;
-
-        //             // After building the existing assistantHtml, add this:
-        //             if (data.agent.includes("HUMAN_VALIDATION")) {
-        //                 assistantHtml += `
-        //                     <div class="mt-3 p-3 border rounded bg-light">
-        //                         <p><strong>⚠️ Human Validation Required:</strong> Do you agree with this result?</p>
-        //                         <button class="btn btn-success btn-sm validate-btn" data-validation="yes">✔ Yes</button>
-        //                         <button class="btn btn-danger btn-sm validate-btn" data-validation="no">✖ No</button>
-        //                         <textarea class="form-control mt-2 validation-comments" rows="2" placeholder="Add comments (optional)"></textarea>
-        //                     </div>
-        //                 `;
-        //             }
-                    
-        //             // Add result image if it exists
-        //             if (data.result_image) {
-        //                 // If the skin lesion segmentation agent was used and both the user uploaded
-        //                 // an image and we have a result image, display them side by side
-        //                 if (data.agent === "SKIN_LESION_AGENT, HUMAN_VALIDATION" && imageDataUrl) {
-        //                     assistantHtml += `
-        //                         <div class="image-side-by-side">
-        //                             <div class="image-container">
-        //                                 <img src="${imageDataUrl}" alt="Original image" class="img-fluid rounded">
-        //                                 <div class="image-caption">Original Image</div>
-        //                             </div>
-        //                             <div class="image-container">
-        //                                 <img src="${data.result_image}" alt="Segmented image" class="img-fluid rounded">
-        //                                 <div class="image-caption">Segmentation Result</div>
-        //                             </div>
-        //                         </div>
-        //                     `;
-        //                 } else {
-        //                     // Otherwise just show the result image
-        //                     assistantHtml += `
-        //                         <div class="mt-3">
-        //                             <img src="${data.result_image}" alt="Result image" class="result-image">
-        //                         </div>
-        //                     `;
-        //                 }
-        //             }
-                    
-        //             assistantMessageElement.innerHTML = assistantHtml;
-        //             chatBody.appendChild(assistantMessageElement);
-
-        //             // Attach validation button events if human validation is required
-        //             if (data.agent.includes("HUMAN_VALIDATION")) {
-        //                 document.querySelectorAll('.validate-btn').forEach(button => {
-        //                     button.addEventListener('click', async function () {
-        //                         const validation = this.getAttribute('data-validation');
-        //                         // Use the closest container to get the textarea value
-        //                         const comments = this.closest('.p-3').querySelector('.validation-comments').value;
-        //                         await sendValidation(validation, comments);
-        //                     });
-        //                 });
-        //             }
-
-                    
-        //             // Get the play button and add click event to speak text
-        //             const playButton = assistantMessageElement.querySelector('.play-tts-btn');
-
-        //             playButton.addEventListener('click', async function () {
-        //                 // Get a reasonable amount of text to convert to speech (limit to 1000 chars to keep requests smaller)
-        //                 const textForSpeech = cleanText.length > 1000 ? cleanText.substring(0, 1000) + "..." : cleanText;
-
-        //                 // Disable the button while generating speech
-        //                 this.disabled = true;
-        //                 this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-        //                 try {
-        //                     // Get the new audio URL
-        //                     const audioUrl = await generateSpeech(textForSpeech);
-
-        //                     // Stop and clean up previous audio if playing
-        //                     if (currentAudio) {
-        //                         currentAudio.pause();
-        //                         currentAudio.currentTime = 0;
-        //                         URL.revokeObjectURL(currentAudio.src);  // Free up memory
-        //                         currentAudio = null;  // Clear the reference
-        //                     }
-
-        //                     // Create a new audio element for the new speech
-        //                     currentAudio = new Audio(audioUrl);
-
-        //                     // Set event listeners for button updates
-        //                     currentAudio.onplay = () => {
-        //                         this.innerHTML = '<i class="fas fa-pause"></i> Pause';
-        //                         this.classList.remove('btn-outline-primary');
-        //                         this.classList.add('btn-primary');
-        //                         this.disabled = false;
-        //                     };
-
-        //                     currentAudio.onpause = () => {
-        //                         this.innerHTML = '<i class="fas fa-play"></i> Play';
-        //                         this.classList.remove('btn-primary');
-        //                         this.classList.add('btn-outline-primary');
-        //                     };
-
-        //                     currentAudio.onended = () => {
-        //                         this.innerHTML = '<i class="fas fa-play"></i> Play Again';
-        //                         this.classList.remove('btn-primary');
-        //                         this.classList.add('btn-outline-primary');
-        //                         URL.revokeObjectURL(audioUrl);  // Free memory after playback
-        //                         currentAudio = null;  // Ensure reference is cleared
-        //                     };
-
-        //                     // Toggle play/pause on button click
-        //                     this.onclick = () => {
-        //                         if (currentAudio && currentAudio.paused) {
-        //                             currentAudio.play();
-        //                         } else {
-        //                             currentAudio.pause();
-        //                         }
-        //                     };
-
-        //                     // Play the generated speech
-        //                     currentAudio.play();
-        //                 } catch (error) {
-        //                     console.error("TTS Error:", error);
-        //                     this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Voice failed';
-        //                     this.disabled = false;
-        //                 }
-        //             });
-
-                    
-        //             // Auto-play the voice response if needed
-        //             // Uncomment the next line to automatically play the voice response
-        //             // playButton.click();
-                    
-        //             // Store messages for display purposes only
-        //             displayMessages.push({
-        //                 role: "user",
-        //                 content: message,
-        //                 image: imageDataUrl
-        //             });
-                    
-        //             displayMessages.push({
-        //                 role: "assistant",
-        //                 content: data.response,
-        //                 agent: data.agent,
-        //                 resultImage: data.result_image
-        //             });
-                    
-        //             // Clear file upload preview
-        //             imageUpload.value = '';
-        //             previewContainer.style.display = 'none';
-                    
-        //         } catch (error) {
-        //             console.error("Error:", error);
-        //             // Remove thinking indicator
-        //             chatBody.removeChild(thinkingElement);
-                    
-        //             // Add error message
-        //             const errorElement = document.createElement('div');
-        //             errorElement.className = 'message assistant-message';
-        //             errorElement.innerHTML = `
-        //                 <div class="agent-tag">System</div>
-        //                 <p class="text-danger">Sorry, there was an error processing your request. Please try again.</p>
-        //             `;
-        //             chatBody.appendChild(errorElement);
-        //         }
-                
-        //         // Scroll to bottom again
-        //         chatBody.scrollTop = chatBody.scrollHeight;
-        //     });
-
-        //     // Allow sending message with Enter key
-        //     messageInput.addEventListener('keydown', function(e) {
-        //         if (e.key === 'Enter' && !e.shiftKey) {
-        //             e.preventDefault();
-        //             chatForm.dispatchEvent(new Event('submit'));
-        //         }
-        //     });
-        // });
-
-        // // Speech Recorder button function
-        // function toggleRecording() {
-        //     const voiceButton = document.getElementById('voice-record-btn');
-            
-        //     if (!isRecording) {
-        //         // Start recording
-        //         navigator.mediaDevices.getUserMedia({ audio: true })
-        //             .then(stream => {
-        //                 // mediaRecorder = new MediaRecorder(stream);
-        //                 mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-        //                 audioChunks = [];
-                        
-        //                 mediaRecorder.addEventListener('dataavailable', event => {
-        //                     audioChunks.push(event.data);
-        //                 });
-                        
-        //                 mediaRecorder.addEventListener('stop', () => {
-        //                     // const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        //                     const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-        //                     transcribeSpeech(audioBlob);
-                            
-        //                     // Reset UI
-        //                     voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
-        //                     voiceButton.classList.remove('btn-danger');
-        //                     voiceButton.classList.add('btn-warning');
-        //                 });
-                        
-        //                 // Start recording
-        //                 mediaRecorder.start();
-        //                 isRecording = true;
-                        
-        //                 // Update UI
-        //                 voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
-        //                 voiceButton.classList.remove('btn-warning');
-        //                 voiceButton.classList.add('btn-danger');
-        //             })
-        //             .catch(error => {
-        //                 console.error('Error accessing microphone:', error);
-        //                 alert('Could not access microphone. Please check your browser permissions.');
-        //             });
-        //     } else {
-        //         // Stop recording
-        //         mediaRecorder.stop();
-        //         isRecording = false;
-                
-        //         // Update UI to show processing
-        //         voiceButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        //         voiceButton.disabled = true;
-                
-        //         // Each track needs to be stopped to turn off the microphone
-        //         mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        //     }
-        // }
-
-        // function transcribeSpeech(audioBlob) {
-        //     const voiceButton = document.getElementById('voice-record-btn');
-        //     const messageInput = document.getElementById('message-input');
-            
-        //     // Create a temporary element to display processing status
-        //     const statusElement = document.createElement('div');
-        //     statusElement.className = 'alert alert-info mt-2';
-        //     statusElement.innerHTML = 'Processing voice input...';
-        //     document.querySelector('.chat-footer').prepend(statusElement);
-            
-        //     // Always use server-side transcription for recorded audio
-        //     const formData = new FormData();
-        //     formData.append('audio', audioBlob);
-            
-        //     fetch('/transcribe', {
-        //         method: 'POST',
-        //         body: formData
-        //     })
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         if (data.transcript) {
-        //             messageInput.value = data.transcript;
-        //             messageInput.focus();
-        //         } else {
-        //             throw new Error('Transcription failed');
-        //         }
-        //     })
-        //     .catch(error => {
-        //         console.error('Transcription error:', error);
-        //         statusElement.className = 'alert alert-danger mt-2';
-        //         statusElement.innerHTML = 'Failed to transcribe speech. Please try again or type your message.';
-        //     })
-        //     .finally(() => {
-        //         // Clean up
-        //         setTimeout(() => {
-        //             statusElement.remove();
-        //             voiceButton.disabled = false;
-        //             voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
-        //         }, 3000);
-        //     });
-        // }
-
-        // // Function to generate speech using ElevenLabs API
-        // // Function to generate speech using the secure backend
-        // async function generateSpeech(text) {
-        //     try {
-        //         const response = await fetch('/generate-speech', {
-        //             method: 'POST',
-        //             headers: {
-        //                 'Content-Type': 'application/json'
-        //             },
-        //             body: JSON.stringify({
-        //                 text: text,
-        //                 voice_id: selectedVoiceId  // Replace with the correct voice ID
-        //             })
-        //         });
-
-        //         if (!response.ok) {
-        //             throw new Error(`HTTP error! status: ${response.status}`);
-        //         }
-
-        //         // Convert response to a playable audio blob
-        //         const audioBlob = await response.blob();
-        //         return URL.createObjectURL(audioBlob);
-        //     } catch (error) {
-        //         console.error("Error generating speech:", error);
-        //         throw error;
-        //     }
-        // }
-
-        // // Function to send human validated response
-        // async function sendValidation(validation, comments) {
-        //     try {
-        //         // Create and display a waiting element
-        //         const waitingEl = document.createElement('div');
-        //         waitingEl.className = 'alert alert-info mt-2';
-        //         waitingEl.innerHTML = '⏳ Processing validation...';
-        //         document.getElementById("chat-body").appendChild(waitingEl);
-
-        //         const formData = new FormData();
-        //         formData.append("validation_result", validation);
-        //         formData.append("comments", comments);
-
-        //         const response = await fetch("/send_validation", {
-        //             method: "POST",
-        //             body: formData,
-        //             credentials: 'include'
-        //         });
-
-        //         const result = await response.json();
-
-        //         // Remove waiting indicator
-        //         waitingEl.remove();
-
-        //         // Build validated message HTML with audio controls added
-        //         const validationMsg = document.createElement("div");
-        //         validationMsg.className = "message assistant-message";
-        //         validationMsg.innerHTML = `
-        //             <div class="agent-tag">HUMAN_VALIDATED</div>
-        //             <div>${marked.parse(result.message)}</div>
-        //             <div>${marked.parse(result.response)}</div>
-        //             <div class="audio-controls mt-2">
-        //                 <button class="btn btn-sm btn-outline-primary play-tts-btn">
-        //                     <i class="fas fa-play"></i> Play Voice Response
-        //                 </button>
-        //             </div>
-        //         `;
-        //         document.getElementById("chat-body").appendChild(validationMsg);
-
-        //         // Get clean text for TTS (without markdown)
-        //         const cleanText = removeMarkdown(result.response);
-
-        //         // Attach event listener for TTS for validation message
-        //         const playButton = validationMsg.querySelector('.play-tts-btn');
-        //         if (playButton) {
-        //             playButton.addEventListener('click', async function () {
-
-        //                 // Get a reasonable amount of text to convert to speech (limit to 1000 chars to keep requests smaller)
-        //                 const textForSpeech = cleanText.length > 1000 ? cleanText.substring(0, 1000) + "..." : cleanText;
-
-        //                 // Disable the button while generating speech
-        //                 this.disabled = true;
-        //                 this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-
-        //                 try {
-        //                     // Get the new audio URL
-        //                     const audioUrl = await generateSpeech(textForSpeech);
-
-        //                     // Stop and clean up previous audio if playing
-        //                     if (currentAudio) {
-        //                         currentAudio.pause();
-        //                         currentAudio.currentTime = 0;
-        //                         URL.revokeObjectURL(currentAudio.src);  // Free up memory
-        //                         currentAudio = null;  // Clear the reference
-        //                     }
-
-        //                     // Create a new audio element for the new speech
-        //                     currentAudio = new Audio(audioUrl);
-
-        //                     // Set event listeners for button updates
-        //                     currentAudio.onplay = () => {
-        //                         this.innerHTML = '<i class="fas fa-pause"></i> Pause';
-        //                         this.classList.remove('btn-outline-primary');
-        //                         this.classList.add('btn-primary');
-        //                         this.disabled = false;
-        //                     };
-
-        //                     currentAudio.onpause = () => {
-        //                         this.innerHTML = '<i class="fas fa-play"></i> Play';
-        //                         this.classList.remove('btn-primary');
-        //                         this.classList.add('btn-outline-primary');
-        //                     };
-
-        //                     currentAudio.onended = () => {
-        //                         this.innerHTML = '<i class="fas fa-play"></i> Play Again';
-        //                         this.classList.remove('btn-primary');
-        //                         this.classList.add('btn-outline-primary');
-        //                         URL.revokeObjectURL(audioUrl);  // Free memory after playback
-        //                         currentAudio = null;  // Ensure reference is cleared
-        //                     };
-
-        //                     // Toggle play/pause on button click
-        //                     this.onclick = () => {
-        //                         if (currentAudio && currentAudio.paused) {
-        //                             currentAudio.play();
-        //                         } else {
-        //                             currentAudio.pause();
-        //                         }
-        //                     };
-
-        //                     // Play the generated speech
-        //                     currentAudio.play();
-        //                 } catch (error) {
-        //                     console.error("TTS Error:", error);
-        //                     this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Voice failed';
-        //                     this.disabled = false;
-        //                 }
-
-        //             });
-        //         }
-        //     } catch (error) {
-        //         console.error("Validation submission failed:", error);
-        //     }
-        // }
-
-        // // Helper function to remove markdown for clean TTS
-        // function removeMarkdown(text) {
-        //     if (!text) return '';
-            
-        //     // Remove code blocks
-        //     text = text.replace(/```[\s\S]*?```/g, 'Code block omitted for speech.');
-            
-        //     // Remove inline code
-        //     text = text.replace(/`([^`]+)`/g, '$1');
-            
-        //     // Remove headers
-        //     text = text.replace(/#{1,6}\s+/g, '');
-            
-        //     // Remove bold/italic markers
-        //     text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
-        //     text = text.replace(/(\*|_)(.*?)\1/g, '$2');
-            
-        //     // Remove list markers
-        //     text = text.replace(/^\s*[\*\-+]\s+/gm, '');
-        //     text = text.replace(/^\s*\d+\.\s+/gm, '');
-            
-        //     // Remove links, keep text
-        //     text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-            
-        //     // Remove images
-        //     text = text.replace(/!\[([^\]]+)\]\([^)]+\)/g, 'Image: $1');
-            
-        //     // Remove blockquotes
-        //     text = text.replace(/^\>\s+/gm, '');
-            
-        //     // Handle line breaks sensibly for speech
-        //     text = text.replace(/\n{2,}/g, '. ');
-        //     text = text.replace(/\n/g, ' ');
-            
-        //     return text;
-        // }
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-        let audioContext;
-        let currentAudio = null;  // Store a single audio instance
-        let selectedVoiceId = '21m00Tcm4TlvDq8ikWAM'; // Default voice ID (Rachel)
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatBody = document.getElementById('chat-body');
-            const chatForm = document.getElementById('chat-form');
-            const messageInput = document.getElementById('message-input');
-            const imageUpload = document.getElementById('image-upload');
-            const previewContainer = document.getElementById('preview-container');
-            const previewImage = document.getElementById('preview-image');
-            const removeImageBtn = document.getElementById('remove-image');
-            const clearChatBtn = document.getElementById('clear-chat');
-
-            // Add voice recording button to the UI
-            const fileUploadContainer = document.querySelector('.file-upload-container');
-            const voiceButtonHTML = `
-                <button type="button" class="btn btn-warning rounded-circle ms-2 me-2" id="voice-record-btn" style="width: 40px; height: 40px;">
-                    <i class="fas fa-microphone"></i>
+            <!-- Input Area -->
+            <div class="input-container">
+                <button class="icon-btn" id="attach-btn" title="Attach Image">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                    </svg>
                 </button>
-            `;
-            fileUploadContainer.insertAdjacentHTML('afterend', voiceButtonHTML);
-            
-            const voiceRecordBtn = document.getElementById('voice-record-btn');
-            
-            // Voice recording functionality
-            voiceRecordBtn.addEventListener('click', toggleRecording);
-            
-            // Initialize audio context
-            try {
-                window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioContext = new AudioContext();
-            } catch (e) {
-                console.error('Web Audio API is not supported in this browser');
-            }
-            
-            // We only maintain display messages and conversation memory
-            let displayMessages = [];
-            let conversationMemory = [];
-            
-            // User-friendly agent name mapping
-            const agentNameMapping = {
-                'CONVERSATION_AGENT': 'Dr. Maya',
-                'RAG_AGENT': 'Dr. Maya (Medical Knowledge)',
-                'WEB_SEARCH_PROCESSOR_AGENT': 'Dr. Maya (Latest Research)',
-                'BRAIN_TUMOR_AGENT': 'Dr. Maya (Brain Specialist)',
-                'CHEST_XRAY_AGENT': 'Dr. Maya (Chest Specialist)',
-                'SKIN_LESION_AGENT': 'Dr. Maya (Dermatology)',
-                'HUMAN_VALIDATION': 'Dr. Maya (Verification)',
-                'System': 'Dr. Maya'
-            };
-            
-            // Get friendly agent name
-            function getFriendlyAgentName(agentName) {
-                // Handle multiple agents (e.g., "RAG_AGENT, WEB_SEARCH_PROCESSOR_AGENT")
-                if (agentName.includes(',')) {
-                    const agents = agentName.split(',').map(a => a.trim());
-                    const friendlyNames = agents.map(agent => agentNameMapping[agent] || agent);
-                    return friendlyNames[0]; // Use the first agent's name for simplicity
-                }
-                return agentNameMapping[agentName] || agentName;
-            }
-            
-            // Add message to conversation memory (keep last 4 messages for 2-level follow-up)
-            function addToMemory(role, content, agent = null) {
-                conversationMemory.push({
-                    role: role, // 'user' or 'assistant'
-                    content: content,
-                    agent: agent,
-                    timestamp: new Date().toISOString()
-                });
-                
-                // Keep only last 4 messages (2 user + 2 assistant for 2-level follow-up)
-                if (conversationMemory.length > 4) {
-                    conversationMemory = conversationMemory.slice(-4);
-                }
-            }
-            
-            // Get conversation context for follow-up
-            function getConversationContext() {
-                if (conversationMemory.length === 0) return '';
-                
-                let context = '\\n\\nRecent conversation context:\\n';
-                conversationMemory.forEach((msg, index) => {
-                    const role = msg.role === 'user' ? 'Patient' : 'Dr. Maya';
-                    context += `${role}: ${msg.content}\\n`;
-                });
-                
-                return context;
-            }
-            
-            // Check if message is a follow-up question
-            function isFollowUpQuestion(message) {
-                const followUpIndicators = [
-                    'what about', 'and what', 'also', 'additionally', 'furthermore',
-                    'can you explain', 'tell me more', 'what else', 'anything else',
-                    'follow up', 'regarding', 'about that', 'more details',
-                    'expand on', 'elaborate', 'continue', 'go on'
-                ];
-                
-                const lowerMessage = message.toLowerCase();
-                return followUpIndicators.some(indicator => lowerMessage.includes(indicator)) ||
-                       conversationMemory.length > 0; // Any message after the first is potentially a follow-up
-            }
-            
-            // Enhanced citation processing
-            function processEnhancedCitations(response) {
-                // Look for source references in the response
-                const sourcePattern = /\[([^\]]+)\]\(([^)]+)\)/g;
-                const sources = [];
-                let match;
-                
-                while ((match = sourcePattern.exec(response)) !== null) {
-                    sources.push({
-                        title: match[1],
-                        url: match[2],
-                        credibility: assessSourceCredibility(match[2])
-                    });
-                }
-                
-                return sources;
-            }
-            
-            // Assess source credibility based on domain
-            function assessSourceCredibility(url) {
-                const highCredibilityDomains = [
-                    'pubmed.ncbi.nlm.nih.gov', 'nejm.org', 'thelancet.com', 'bmj.com',
-                    'mayoclinic.org', 'who.int', 'cdc.gov', 'nih.gov', 'nature.com',
-                    'sciencedirect.com', 'springer.com', 'wiley.com'
-                ];
-                
-                const mediumCredibilityDomains = [
-                    'webmd.com', 'healthline.com', 'medicalnewstoday.com',
-                    'clevelandclinic.org', 'hopkinsmedicine.org'
-                ];
-                
-                const domain = new URL(url).hostname.toLowerCase();
-                
-                if (highCredibilityDomains.some(d => domain.includes(d))) {
-                    return 'high';
-                } else if (mediumCredibilityDomains.some(d => domain.includes(d))) {
-                    return 'medium';
-                } else {
-                    return 'low';
-                }
-            }
-            
-            // Generate quick reply suggestions based on response
-            function generateQuickReplies(response, agent) {
-                const suggestions = [];
-                
-                if (agent.includes('BRAIN_TUMOR') || response.toLowerCase().includes('brain')) {
-                    suggestions.push('Tell me more about treatment options', 'What are the risk factors?', 'How is this diagnosed?');
-                } else if (agent.includes('CHEST_XRAY') || response.toLowerCase().includes('chest')) {
-                    suggestions.push('What should I do next?', 'How accurate is this?', 'Can you explain the results?');
-                } else if (agent.includes('SKIN_LESION') || response.toLowerCase().includes('skin')) {
-                    suggestions.push('Should I see a dermatologist?', 'What are warning signs?', 'How can I prevent this?');
-                } else {
-                    suggestions.push('Can you explain more?', 'What are my options?', 'Is this serious?', 'Thank you!');
-                }
-                
-                return suggestions.slice(0, 3); // Limit to 3 suggestions
-            }
-            
-            // Add quick reply functionality
-            function addQuickReplyListeners(element) {
-                const quickReplyBtns = element.querySelectorAll('.quick-reply-btn');
-                quickReplyBtns.forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        messageInput.value = this.textContent;
-                        messageInput.focus();
-                        // Auto-submit after a short delay
-                        setTimeout(() => {
-                            chatForm.dispatchEvent(new Event('submit'));
-                        }, 500);
-                    });
-                });
-            }
-            
-            // Add message reaction functionality
-            function addReactionListeners(element) {
-                const reactionBtns = element.querySelectorAll('.reaction-btn');
-                reactionBtns.forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        this.classList.toggle('active');
-                        // Here you could send feedback to the backend
-                        console.log('Reaction:', this.textContent, 'Active:', this.classList.contains('active'));
-                    });
-                });
-            }
-            
-            // Emergency keywords for detection
-            const emergencyKeywords = [
-                'chest pain', 'heart attack', 'stroke', 'difficulty breathing', 'can\'t breathe',
-                'severe bleeding', 'unconscious', 'seizure', 'overdose', 'suicide',
-                'severe allergic reaction', 'anaphylaxis', 'choking', 'severe burn',
-                'broken bone', 'head injury', 'severe abdominal pain', 'poisoning',
-                'emergency', '911', 'ambulance', 'hospital emergency'
-            ];
-            
-            // Status messages for different operations
-            const statusMessages = {
-                analyzing: {
-                    icon: 'fas fa-brain',
-                    text: 'Dr. Maya is analyzing your question...',
-                    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                },
-                searching: {
-                    icon: 'fas fa-search',
-                    text: 'Searching medical databases...',
-                    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                },
-                processing_image: {
-                    icon: 'fas fa-image',
-                    text: 'Processing your medical image...',
-                    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                },
-                consulting: {
-                    icon: 'fas fa-user-md',
-                    text: 'Consulting medical specialists...',
-                    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-                },
-                finalizing: {
-                    icon: 'fas fa-check-circle',
-                    text: 'Preparing your personalized response...',
-                    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-                }
-            };
-            
-            // Emergency detection function
-            function detectEmergency(message) {
-                const lowerMessage = message.toLowerCase();
-                return emergencyKeywords.some(keyword => lowerMessage.includes(keyword));
-            }
-            
-            // Show emergency alert
-            function showEmergencyAlert() {
-                const emergencyAlert = document.createElement('div');
-                emergencyAlert.className = 'message assistant-message';
-                emergencyAlert.innerHTML = `
-                    <div class="emergency-alert">
-                        <h4><i class="fas fa-exclamation-triangle me-2"></i>🚨 MEDICAL EMERGENCY DETECTED</h4>
-                        <p><strong>If this is a medical emergency, please seek immediate help:</strong></p>
-                        <div class="emergency-actions">
-                            <button class="emergency-btn call-911" onclick="window.open('tel:911')">
-                                <i class="fas fa-phone me-2"></i>CALL 911 NOW
-                            </button>
-                            <button class="emergency-btn find-hospital" onclick="findNearestHospital()">
-                                <i class="fas fa-hospital me-2"></i>Find Nearest Hospital
-                            </button>
-                        </div>
-                        <p class="mt-3 mb-0"><small>⚠️ I'm an AI assistant and cannot replace emergency medical services. For life-threatening situations, always call emergency services immediately.</small></p>
-                    </div>
-                `;
-                chatBody.appendChild(emergencyAlert);
-                chatBody.scrollTop = chatBody.scrollHeight;
-            }
-            
-            // Find nearest hospital function
-            function findNearestHospital() {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function(position) {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        window.open(`https://www.google.com/maps/search/hospital+near+me/@${lat},${lng},15z`);
-                    }, function() {
-                        window.open('https://www.google.com/maps/search/hospital+near+me');
-                    });
-                } else {
-                    window.open('https://www.google.com/maps/search/hospital+near+me');
-                }
-            }
-            
-            // Enhanced status indicator function
-            function showEnhancedStatus(type = 'analyzing') {
-                const status = statusMessages[type];
-                const statusElement = document.createElement('div');
-                statusElement.className = 'message assistant-message status-indicator';
-                statusElement.style.background = status.gradient;
-                statusElement.innerHTML = `
-                    <i class="${status.icon}"></i>
-                    <div class="status-text">
-                        ${status.text}
-                        <div class="status-progress">
-                            <div class="status-progress-bar"></div>
-                        </div>
-                    </div>
-                `;
-                return statusElement;
-            }
-            
-            // Cycle through status messages
-            function cycleStatusMessages(statusElement) {
-                const statusTypes = ['analyzing', 'searching', 'consulting', 'finalizing'];
-                let currentIndex = 0;
-                
-                const interval = setInterval(() => {
-                    if (statusElement.parentNode) {
-                        currentIndex = (currentIndex + 1) % statusTypes.length;
-                        const status = statusMessages[statusTypes[currentIndex]];
-                        statusElement.style.background = status.gradient;
-                        statusElement.querySelector('i').className = status.icon;
-                        statusElement.querySelector('.status-text').innerHTML = `
-                            ${status.text}
-                            <div class="status-progress">
-                                <div class="status-progress-bar"></div>
+                <textarea 
+                    class="chat-input" 
+                    id="chat-input" 
+                    placeholder="Ask me anything about health, upload a medical image, or get research insights..." 
+                    rows="1"
+                ></textarea>
+                <button class="btn-primary" id="send-btn" style="border-radius: 12px; height: 44px; padding: 0 24px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
                             </div>
-                        `;
-                    } else {
-                        clearInterval(interval);
-                    }
-                }, 2000);
-                
-                return interval;
-            }
+        </div>
+    </div>
+    
+    <script>
+        // State
+        let selectedFile = null;
+        let queryCount = 0;
+        
+        // Elements
+        const messagesArea = document.getElementById('messages-area');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        const attachBtn = document.getElementById('attach-btn');
+        const fileInput = document.getElementById('file-input');
+        const fileUploadArea = document.getElementById('file-upload-area');
             
             // Auto-resize textarea
-            messageInput.addEventListener('input', function() {
+        chatInput.addEventListener('input', function() {
                 this.style.height = 'auto';
                 this.style.height = (this.scrollHeight) + 'px';
             });
             
-            // Handle image upload
-            imageUpload.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(e) {
-                        previewImage.src = e.target.result;
-                        previewContainer.style.display = 'block';
-                    };
-                    
-                    reader.readAsDataURL(file);
-                }
-            });
-            
-            // Remove image preview
-            removeImageBtn.addEventListener('click', function() {
-                imageUpload.value = '';
-                previewContainer.style.display = 'none';
-                previewImage.src = '';
-            });
-            
-            // Clear chat (visual and memory)
-            clearChatBtn.addEventListener('click', function() {
-                displayMessages = [];
-                conversationMemory = []; // Clear conversation memory
-                chatBody.innerHTML = `
-                    <div class="message assistant-message">
-                        <div class="agent-tag">Dr. Maya</div>
-                        <p>👋 Hello! I'm Dr. Maya, your friendly AI medical assistant. I'm here to help you with:</p>
-                        <ul>
-                            <li>🩺 General health questions and concerns</li>
-                            <li>📚 Medical information from trusted sources</li>
-                            <li>📸 Analysis of medical images (X-rays, scans, skin conditions)</li>
-                            <li>🔍 Latest medical research and findings</li>
-                        </ul>
-                        <p><strong>How can I help you today?</strong> 😊</p>
-                    </div>
-                `;
-            });
-            
-            // Handle form submission
-            chatForm.addEventListener('submit', async function(e) {
+        // Send message on Enter (Shift+Enter for new line)
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                
-                // Get message from input or transcribed text
-                const message = messageInput.value.trim();
-                if (!message && !imageUpload.files.length) return;
-                
-                // Check for emergency keywords
-                if (message && detectEmergency(message)) {
-                    showEmergencyAlert();
-                }
-                
-                // Store image data if available
-                let imageDataUrl = null;
-                if (imageUpload.files.length > 0) {
-                    imageDataUrl = previewImage.src;
-                }
-                
-                // Add user message to chat
-                const userMessageElement = document.createElement('div');
-                userMessageElement.className = 'message user-message';
-                
-                // Create message content with image if available
-                let messageContent = `<p>${message}</p>`;
-                if (imageDataUrl) {
-                    messageContent += `
-                        <div class="mt-2">
-                            <img src="${imageDataUrl}" alt="Uploaded image" class="img-fluid rounded" style="max-height: 200px;">
-                        </div>
-                    `;
-                }
-                
-                userMessageElement.innerHTML = messageContent;
-                chatBody.appendChild(userMessageElement);
-                
-                // Add user message to memory
-                addToMemory('user', message);
-                
-                // Add enhanced status indicator
-                const statusType = imageUpload.files.length > 0 ? 'processing_image' : 'analyzing';
-                const statusElement = showEnhancedStatus(statusType);
-                chatBody.appendChild(statusElement);
-                
-                // Start cycling through status messages
-                const statusInterval = cycleStatusMessages(statusElement);
-                
-                // Scroll to bottom
-                chatBody.scrollTop = chatBody.scrollHeight;
-                
-                // Clear input
-                messageInput.value = '';
-                messageInput.style.height = 'auto';
+                sendMessage();
+            }
+        });
+        
+        // Send button click
+        sendBtn.addEventListener('click', sendMessage);
+        
+        // Attach button
+        attachBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                showFilePreview(file);
+            }
+        });
+        
+        // Drag and drop
+        fileUploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            fileUploadArea.classList.add('drag-over');
+        });
+        
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('drag-over');
+        });
+        
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                selectedFile = file;
+                showFilePreview(file);
+            }
+        });
+        
+        // Show file preview
+        function showFilePreview(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                addMessage('user', `
+                    <p>Uploaded image for analysis:</p>
+                    <img src="${e.target.result}" class="image-preview" alt="Uploaded image">
+                `);
+                fileUploadArea.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Send message
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            
+            if (!message && !selectedFile) return;
+            
+            // Add user message
+            if (message) {
+                addMessage('user', message);
+            }
+            
+            // Clear input
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            
+            // Show loading
+            const loadingId = addLoadingMessage();
+            
+            // Update KPI
+            queryCount++;
+            document.getElementById('kpi-queries').textContent = queryCount;
                 
                 try {
                     let response;
                     
-                    // Check if there's an image or just text
-                    if (imageUpload.files.length > 0) {
-                        // Create form data for image upload with optional text
+                if (selectedFile) {
+                    // Send with image
                         const formData = new FormData();
-                        formData.append('text', message);
-                        formData.append('image', imageUpload.files[0]);
+                    formData.append('image', selectedFile);
+                    formData.append('text', message || '');
                         
-                        // Send to backend using the /upload endpoint
                         response = await fetch('/upload', {
                             method: 'POST',
-                            body: formData,
-                            credentials: 'include' // Important for cookie handling
+                        body: formData
                         });
-                    } else {
-                        // Text-only query using the /chat endpoint with JSON
-                        const queryWithContext = isFollowUpQuestion(message) ? 
-                            message + getConversationContext() : message;
                             
+                    selectedFile = null;
+                } else {
+                    // Send text only
                         response = await fetch('/chat', {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json',
+                            'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({
-                                query: queryWithContext,
-                                conversation_history: conversationMemory.slice(-4) // Send recent context
-                            }),
-                            credentials: 'include' // Important for cookie handling
+                            query: message,
+                            conversation_history: []
+                        })
                         });
                     }
                     
                     const data = await response.json();
                     
-                    // Remove status indicator and clear interval
-                    clearInterval(statusInterval);
-                    if (statusElement.parentNode) {
-                        chatBody.removeChild(statusElement);
-                    }
-                    
-                    // Add response to chat
-                    const assistantMessageElement = document.createElement('div');
-                    assistantMessageElement.className = 'message assistant-message';
-                    
-                    // Get clean text for TTS (without markdown)
-                    const cleanText = removeMarkdown(data.response);
-                    
-                    // Get friendly agent name and add to memory
-                    const friendlyAgentName = getFriendlyAgentName(data.agent);
-                    addToMemory('assistant', data.response, data.agent);
-                    
-                    // Process enhanced citations
-                    const citations = processEnhancedCitations(data.response);
-                    const quickReplies = generateQuickReplies(data.response, data.agent);
-                    
-                    // Build HTML content for the response with enhanced features
-                    let assistantHtml = `
-                        <div class="agent-tag">${friendlyAgentName}</div>
-                        <div>${marked.parse(data.response)}</div>
-                    `;
-                    
-                    // Add enhanced citations if available
-                    if (citations.length > 0) {
-                        assistantHtml += `
-                            <div class="citations-section">
-                                <div class="citations-header">
-                                    <i class="fas fa-book me-2"></i>📚 Medical Sources & References
-                                </div>
-                        `;
-                        
-                        citations.forEach((citation, index) => {
-                            const credibilityIcon = citation.credibility === 'high' ? '🟢' : 
-                                                   citation.credibility === 'medium' ? '🟡' : '🔴';
-                            const credibilityText = citation.credibility === 'high' ? 'Peer-reviewed' : 
-                                                   citation.credibility === 'medium' ? 'Medical source' : 'General source';
-                            
-                            assistantHtml += `
-                                <div class="citation-item">
-                                    <a href="${citation.url}" target="_blank" class="citation-link">
-                                        ${citation.title}
-                                    </a>
-                                    <span class="source-credibility credibility-${citation.credibility}">
-                                        ${credibilityIcon} ${credibilityText}
-                                    </span>
-                                </div>
-                            `;
-                        });
-                        
-                        assistantHtml += `</div>`;
-                    }
-                    
-                    // Add quick reply suggestions
-                    if (quickReplies.length > 0) {
-                        assistantHtml += `
-                            <div class="quick-replies">
-                                ${quickReplies.map(reply => `
-                                    <button class="quick-reply-btn">${reply}</button>
-                                `).join('')}
-                            </div>
-                        `;
-                    }
-                    
-                    // Add message reactions
-                    assistantHtml += `
-                        <div class="message-reactions">
-                            <button class="reaction-btn">👍 Helpful</button>
-                            <button class="reaction-btn">❤️ Thank you</button>
-                            <button class="reaction-btn">🤔 Need clarification</button>
-                        </div>
-                    `;
-                    
-                    // Add audio controls
-                    assistantHtml += `
-                        <div class="audio-controls mt-2">
-                            <button class="btn btn-sm btn-outline-primary play-tts-btn">
-                                <i class="fas fa-play"></i> 🔊 Listen to Response
-                            </button>
-                        </div>
-                    `;
-
-                    // Add human validation UI if required
-                    if (data.agent.includes("HUMAN_VALIDATION")) {
-                        assistantHtml += `
-                            <div class="mt-3 p-3 border rounded bg-light">
-                                <p><strong>⚠️ Human Validation Required:</strong> Do you agree with this result?</p>
-                                <button class="btn btn-success btn-sm validate-btn" data-validation="yes">✔ Yes</button>
-                                <button class="btn btn-danger btn-sm validate-btn" data-validation="no">✖ No</button>
-                                <textarea class="form-control mt-2 validation-comments" rows="2" placeholder="Add comments (optional)"></textarea>
-                            </div>
-                        `;
-                    }
-                    
-                    // Add result image if it exists
-                    if (data.result_image) {
-                        // If the skin lesion segmentation agent was used and both the user uploaded
-                        // an image and we have a result image, display them side by side
-                        if (data.agent === "SKIN_LESION_AGENT, HUMAN_VALIDATION" && imageDataUrl) {
-                            assistantHtml += `
-                                <div class="image-side-by-side">
-                                    <div class="image-container">
-                                        <img src="${imageDataUrl}" alt="Original image" class="img-fluid rounded">
-                                        <div class="image-caption">Original Image</div>
-                                    </div>
-                                    <div class="image-container">
-                                        <img src="${data.result_image}" alt="Segmented image" class="img-fluid rounded">
-                                        <div class="image-caption">Segmentation Result</div>
-                                    </div>
-                                </div>
-                            `;
-                        } else {
-                            // Otherwise just show the result image
-                            assistantHtml += `
-                                <div class="mt-3">
-                                    <img src="${data.result_image}" alt="Result image" class="result-image">
-                                </div>
-                            `;
-                        }
-                    }
-                    
-                    assistantMessageElement.innerHTML = assistantHtml;
-                    chatBody.appendChild(assistantMessageElement);
-                    
-                    // Add event listeners for interactive elements
-                    addQuickReplyListeners(assistantMessageElement);
-                    addReactionListeners(assistantMessageElement);
-
-                    // Attach validation button events if human validation is required
-                    if (data.agent.includes("HUMAN_VALIDATION")) {
-                        document.querySelectorAll('.validate-btn').forEach(button => {
-                            button.addEventListener('click', async function () {
-                                const validation = this.getAttribute('data-validation');
-                                // Use the closest container to get the textarea value
-                                const comments = this.closest('.p-3').querySelector('.validation-comments').value;
-                                await sendValidation(validation, comments);
-                            });
-                        });
-                    }
-                    
-                    // Get the play button and add click event to speak text
-                    const playButton = assistantMessageElement.querySelector('.play-tts-btn');
-
-                    playButton.addEventListener('click', async function () {
-                        // Get a reasonable amount of text to convert to speech (limit to 1000 chars to keep requests smaller)
-                        const textForSpeech = cleanText.length > 1000 ? cleanText.substring(0, 1000) + "..." : cleanText;
-
-                        // Disable the button while generating speech
-                        this.disabled = true;
-                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-                        try {
-                            // Get the new audio URL
-                            const audioUrl = await generateSpeech(textForSpeech);
-
-                            // Stop and clean up previous audio if playing
-                            if (currentAudio) {
-                                currentAudio.pause();
-                                currentAudio.currentTime = 0;
-                                URL.revokeObjectURL(currentAudio.src);  // Free up memory
-                                currentAudio = null;  // Clear the reference
-                            }
-
-                            // Create a new audio element for the new speech
-                            currentAudio = new Audio(audioUrl);
-
-                            // Set event listeners for button updates
-                            currentAudio.onplay = () => {
-                                this.innerHTML = '<i class="fas fa-pause"></i> Pause';
-                                this.classList.remove('btn-outline-primary');
-                                this.classList.add('btn-primary');
-                                this.disabled = false;
-                            };
-
-                            currentAudio.onpause = () => {
-                                this.innerHTML = '<i class="fas fa-play"></i> Play';
-                                this.classList.remove('btn-primary');
-                                this.classList.add('btn-outline-primary');
-                            };
-
-                            currentAudio.onended = () => {
-                                this.innerHTML = '<i class="fas fa-play"></i> Play Again';
-                                this.classList.remove('btn-primary');
-                                this.classList.add('btn-outline-primary');
-                                URL.revokeObjectURL(audioUrl);  // Free memory after playback
-                                currentAudio = null;  // Ensure reference is cleared
-                            };
-
-                            // Toggle play/pause on button click
-                            this.onclick = () => {
-                                if (currentAudio && currentAudio.paused) {
-                                    currentAudio.play();
-                                } else {
-                                    currentAudio.pause();
-                                }
-                            };
-
-                            // Play the generated speech
-                            currentAudio.play();
-                        } catch (error) {
-                            console.error("TTS Error:", error);
-                            this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Voice failed';
-                            this.disabled = false;
-                        }
-                    });
-                    
-                    // Store messages for display purposes only
-                    displayMessages.push({
-                        role: "user",
-                        content: message,
-                        image: imageDataUrl
-                    });
-                    
-                    displayMessages.push({
-                        role: "assistant",
-                        content: data.response,
-                        agent: data.agent,
-                        resultImage: data.result_image
-                    });
-                    
-                    // Clear file upload preview
-                    imageUpload.value = '';
-                    previewContainer.style.display = 'none';
-                    
-                } catch (error) {
-                    console.error("Error:", error);
-                    // Remove thinking indicator
-                    chatBody.removeChild(thinkingElement);
-                    
-                    // Add error message
-                    const errorElement = document.createElement('div');
-                    errorElement.className = 'message assistant-message';
-                    errorElement.innerHTML = `
-                        <div class="agent-tag">System</div>
-                        <p class="text-danger">Sorry, there was an error processing your request. Please try again.</p>
-                    `;
-                    chatBody.appendChild(errorElement);
-                }
+                // Remove loading
+                removeLoadingMessage(loadingId);
                 
-                // Scroll to bottom again
-                chatBody.scrollTop = chatBody.scrollHeight;
-            });
-
-            // Allow sending message with Enter key
-            messageInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    chatForm.dispatchEvent(new Event('submit'));
-                }
-            });
-        });
-
-        // Speech Recorder button function
-        function toggleRecording() {
-            const voiceButton = document.getElementById('voice-record-btn');
-            
-            if (!isRecording) {
-                // Start recording
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(stream => {
-                        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-                        audioChunks = [];
-                        
-                        mediaRecorder.addEventListener('dataavailable', event => {
-                            audioChunks.push(event.data);
-                        });
-                        
-                        mediaRecorder.addEventListener('stop', () => {
-                            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-                            transcribeSpeech(audioBlob);
-                            
-                            // Reset UI
-                            voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
-                            voiceButton.classList.remove('btn-danger');
-                            voiceButton.classList.add('btn-warning');
-                        });
-                        
-                        // Start recording
-                        mediaRecorder.start();
-                        isRecording = true;
-                        
-                        // Update UI
-                        voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
-                        voiceButton.classList.remove('btn-warning');
-                        voiceButton.classList.add('btn-danger');
-                    })
-                    .catch(error => {
-                        console.error('Error accessing microphone:', error);
-                        alert('Could not access microphone. Please check your browser permissions.');
-                    });
-            } else {
-                // Stop recording
-                mediaRecorder.stop();
-                isRecording = false;
-                
-                // Update UI to show processing
-                voiceButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                voiceButton.disabled = true;
-                
-                // Each track needs to be stopped to turn off the microphone
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            }
-        }
-
-        function transcribeSpeech(audioBlob) {
-            const voiceButton = document.getElementById('voice-record-btn');
-            const messageInput = document.getElementById('message-input');
-            
-            // Create a temporary element to display processing status
-            const statusElement = document.createElement('div');
-            statusElement.className = 'alert alert-info mt-2';
-            statusElement.innerHTML = 'Processing voice input...';
-            document.querySelector('.chat-footer').prepend(statusElement);
-            
-            // Use server-side transcription for recorded audio
-            const formData = new FormData();
-            formData.append('audio', audioBlob);
-            
-            fetch('/transcribe', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.transcript) {
-                    messageInput.value = data.transcript;
-                    messageInput.focus();
+                // Add assistant response
+                if (data.status === 'success') {
+                    addMessage('assistant', data.response, data.agent, data.result_image);
                 } else {
-                    throw new Error('Transcription failed');
+                    addMessage('assistant', '❌ ' + (data.response || 'An error occurred'), 'error');
                 }
-            })
-            .catch(error => {
-                console.error('Transcription error:', error);
-                statusElement.className = 'alert alert-danger mt-2';
-                statusElement.innerHTML = 'Failed to transcribe speech. Please try again or type your message.';
-            })
-            .finally(() => {
-                // Clean up
+                
+            } catch (error) {
+                removeLoadingMessage(loadingId);
+                addMessage('assistant', '❌ Failed to send message: ' + error.message, 'error');
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(role, content, agent = null, resultImage = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${role}`;
+            
+            let agentBadge = '';
+            if (agent) {
+                const agentClass = getAgentClass(agent);
+                const agentName = formatAgentName(agent);
+                agentBadge = `
+                    <div class="agent-badge ${agentClass}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                        ${agentName}
+                                </div>
+                        `;
+            }
+            
+            // Parse markdown
+            let formattedContent = content;
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({
+                    highlight: function(code, lang) {
+                        if (lang && hljs.getLanguage(lang)) {
+                            try {
+                                return hljs.highlight(code, { language: lang }).value;
+                            } catch (err) {}
+                        }
+                        return hljs.highlightAuto(code).value;
+                    },
+                    breaks: true,
+                    gfm: true
+                });
+                formattedContent = marked.parse(content);
+            }
+            
+            // Add result image if present
+            let imageHtml = '';
+            if (resultImage) {
+                imageHtml = `<img src="${resultImage}" class="image-preview" alt="Analysis result" onclick="openImageModal(this.src)">`;
+            }
+            
+            // Add copy button for assistant messages
+            let copyBtn = '';
+            if (role === 'assistant') {
+                copyBtn = `
+                    <button class="copy-btn" onclick="copyToClipboard(this)" title="Copy message">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                `;
+            }
+            
+            messageDiv.innerHTML = `
+                <div>
+                    ${agentBadge}
+                    <div class="message-bubble message-bubble-${role}">
+                        ${copyBtn}
+                        ${formattedContent}
+                        ${imageHtml}
+                        </div>
+                        </div>
+                    `;
+
+            messagesArea.appendChild(messageDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+            
+            // Apply syntax highlighting to code blocks
+            if (typeof hljs !== 'undefined') {
+                messageDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+        }
+        
+        // Add loading message
+        function addLoadingMessage() {
+            const loadingId = 'loading-' + Date.now();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message message-assistant';
+            messageDiv.id = loadingId;
+            messageDiv.innerHTML = `
+                <div>
+                    <div class="agent-badge agent-rag">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                        Processing
+                                    </div>
+                    <div class="message-bubble message-bubble-assistant">
+                        <div class="loading-dots">
+                            <div class="loading-dot"></div>
+                            <div class="loading-dot"></div>
+                            <div class="loading-dot"></div>
+                                    </div>
+                                </div>
+                                </div>
+                            `;
+            messagesArea.appendChild(messageDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+            return loadingId;
+        }
+        
+        // Remove loading message
+        function removeLoadingMessage(loadingId) {
+            const loadingMsg = document.getElementById(loadingId);
+            if (loadingMsg) {
+                loadingMsg.remove();
+            }
+        }
+        
+        // Get agent class for styling
+        function getAgentClass(agent) {
+            if (!agent) return 'agent-conversation';
+            
+            const agentLower = agent.toLowerCase();
+            
+            if (agentLower.includes('conversation')) return 'agent-conversation';
+            if (agentLower.includes('rag')) return 'agent-rag';
+            if (agentLower.includes('web') || agentLower.includes('search')) return 'agent-web';
+            if (agentLower.includes('brain') || agentLower.includes('chest') || 
+                agentLower.includes('skin') || agentLower.includes('medical')) return 'agent-medical';
+            
+            return 'agent-conversation';
+        }
+        
+        // Format agent name
+        function formatAgentName(agent) {
+            if (!agent) return 'Assistant';
+            
+            // Clean up agent name
+            return agent
+                .split(',')[0]
+                .replace(/_/g, ' ')
+                .toLowerCase()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+        
+        // Toggle file upload area
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'u') {
+                    e.preventDefault();
+                fileUploadArea.classList.toggle('hidden');
+            }
+        });
+        
+        // Smooth scroll
+        messagesArea.addEventListener('scroll', () => {
+            const scrollTop = messagesArea.scrollTop;
+            const scrollHeight = messagesArea.scrollHeight;
+            const clientHeight = messagesArea.clientHeight;
+            
+            if (scrollTop + clientHeight >= scrollHeight - 10) {
+                // User is at bottom
+            }
+        });
+        
+        // Animate counter
+        function animateCounter(element, target, duration = 1000) {
+            const start = parseInt(element.textContent) || 0;
+            const increment = (target - start) / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= target) || (increment < 0 && current <= target)) {
+                    element.textContent = target;
+                    clearInterval(timer);
+            } else {
+                    element.textContent = Math.round(current);
+                }
+            }, 16);
+        }
+        
+        // Copy to clipboard
+        function copyToClipboard(button) {
+            const messageBubble = button.closest('.message-bubble');
+            const textContent = messageBubble.innerText.replace('Copy message', '').trim();
+            
+            navigator.clipboard.writeText(textContent).then(() => {
+                // Visual feedback
+                const originalHTML = button.innerHTML;
+                button.classList.add('copied');
+                button.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                `;
+                
                 setTimeout(() => {
-                    statusElement.remove();
-                    voiceButton.disabled = false;
-                    voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
-                }, 3000);
+                    button.classList.remove('copied');
+                    button.innerHTML = originalHTML;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
             });
         }
-
-        // Function to generate speech using the backend
-        async function generateSpeech(text) {
-            try {
-                const response = await fetch('/generate-speech', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        text: text,
-                        voice_id: selectedVoiceId
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                // Convert response to a playable audio blob
-                const audioBlob = await response.blob();
-                return URL.createObjectURL(audioBlob);
-            } catch (error) {
-                console.error("Error generating speech:", error);
-                throw error;
-            }
+        
+        // Open image in modal
+        function openImageModal(src) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                cursor: pointer;
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.cssText = `
+                max-width: 90%;
+                max-height: 90%;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            `;
+            
+            modal.appendChild(img);
+            document.body.appendChild(modal);
+            
+            modal.addEventListener('click', () => {
+                modal.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => modal.remove(), 300);
+            });
         }
-
-        // Function to send human validated response
-        async function sendValidation(validation, comments) {
-            try {
-                // Create and display a waiting element
-                const waitingEl = document.createElement('div');
-                waitingEl.className = 'alert alert-info mt-2';
-                waitingEl.innerHTML = '⏳ Processing validation...';
-                document.getElementById("chat-body").appendChild(waitingEl);
-
-                const formData = new FormData();
-                formData.append("validation_result", validation);
-                formData.append("comments", comments);
-
-                const response = await fetch("/validate", {
-                    method: "POST",
-                    body: formData,
-                    credentials: 'include'
-                });
-
-                const result = await response.json();
-
-                // Remove waiting indicator
-                waitingEl.remove();
-
-                // Build validated message HTML with audio controls added
-                const validationMsg = document.createElement("div");
-                validationMsg.className = "message assistant-message";
-                validationMsg.innerHTML = `
-                    <div class="agent-tag">HUMAN_VALIDATED</div>
-                    <div>${marked.parse(result.message)}</div>
-                    <div>${marked.parse(result.response)}</div>
-                    <div class="audio-controls mt-2">
-                        <button class="btn btn-sm btn-outline-primary play-tts-btn">
-                            <i class="fas fa-play"></i> Play Voice Response
-                        </button>
-                    </div>
+        
+        // Add fade animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Easter egg: Konami code for extra effects
+        let konamiCode = [];
+        const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        
+        document.addEventListener('keydown', (e) => {
+            konamiCode.push(e.key);
+            konamiCode = konamiCode.slice(-10);
+            
+            if (konamiCode.join(',') === konamiSequence.join(',')) {
+                // Add rainbow mode!
+                document.body.style.animation = 'rainbow 5s linear infinite';
+                const rainbowStyle = document.createElement('style');
+                rainbowStyle.textContent = `
+                    @keyframes rainbow {
+                        0%, 100% { filter: hue-rotate(0deg); }
+                        50% { filter: hue-rotate(360deg); }
+                    }
                 `;
-                document.getElementById("chat-body").appendChild(validationMsg);
-
-                // Get clean text for TTS (without markdown)
-                const cleanText = removeMarkdown(result.response);
-
-                // Attach event listener for TTS for validation message
-                const playButton = validationMsg.querySelector('.play-tts-btn');
-                if (playButton) {
-                    playButton.addEventListener('click', async function () {
-                        // Get a reasonable amount of text to convert to speech (limit to 1000 chars to keep requests smaller)
-                        const textForSpeech = cleanText.length > 1000 ? cleanText.substring(0, 1000) + "..." : cleanText;
-
-                        // Disable the button while generating speech
-                        this.disabled = true;
-                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-                        try {
-                            // Get the new audio URL
-                            const audioUrl = await generateSpeech(textForSpeech);
-
-                            // Stop and clean up previous audio if playing
-                            if (currentAudio) {
-                                currentAudio.pause();
-                                currentAudio.currentTime = 0;
-                                URL.revokeObjectURL(currentAudio.src);  // Free up memory
-                                currentAudio = null;  // Clear the reference
-                            }
-
-                            // Create a new audio element for the new speech
-                            currentAudio = new Audio(audioUrl);
-
-                            // Set event listeners for button updates
-                            currentAudio.onplay = () => {
-                                this.innerHTML = '<i class="fas fa-pause"></i> Pause';
-                                this.classList.remove('btn-outline-primary');
-                                this.classList.add('btn-primary');
-                                this.disabled = false;
-                            };
-
-                            currentAudio.onpause = () => {
-                                this.innerHTML = '<i class="fas fa-play"></i> Play';
-                                this.classList.remove('btn-primary');
-                                this.classList.add('btn-outline-primary');
-                            };
-
-                            currentAudio.onended = () => {
-                                this.innerHTML = '<i class="fas fa-play"></i> Play Again';
-                                this.classList.remove('btn-primary');
-                                this.classList.add('btn-outline-primary');
-                                URL.revokeObjectURL(audioUrl);  // Free memory after playback
-                                currentAudio = null;  // Ensure reference is cleared
-                            };
-
-                            // Toggle play/pause on button click
-                            this.onclick = () => {
-                                if (currentAudio && currentAudio.paused) {
-                                    currentAudio.play();
-                                } else {
-                                    currentAudio.pause();
-                                }
-                            };
-
-                            // Play the generated speech
-                            currentAudio.play();
-                        } catch (error) {
-                            console.error("TTS Error:", error);
-                            this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Voice failed';
-                            this.disabled = false;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error("Validation submission failed:", error);
+                document.head.appendChild(rainbowStyle);
+                
+                setTimeout(() => {
+                    document.body.style.animation = '';
+                }, 5000);
             }
-        }
-
-        // Helper function to remove markdown for clean TTS
-        function removeMarkdown(text) {
-            if (!text) return '';
-            
-            // Remove code blocks
-            text = text.replace(/```[\s\S]*?```/g, 'Code block omitted for speech.');
-            
-            // Remove inline code
-            text = text.replace(/`([^`]+)`/g, '$1');
-            
-            // Remove headers
-            text = text.replace(/#{1,6}\s+/g, '');
-            
-            // Remove bold/italic markers
-            text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
-            text = text.replace(/(\*|_)(.*?)\1/g, '$2');
-            
-            // Remove list markers
-            text = text.replace(/^\s*[\*\-+]\s+/gm, '');
-            text = text.replace(/^\s*\d+\.\s+/gm, '');
-            
-            // Remove links, keep text
-            text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-            
-            // Remove images
-            text = text.replace(/!\[([^\]]+)\]\([^)]+\)/g, 'Image: $1');
-            
-            // Remove blockquotes
-            text = text.replace(/^\>\s+/gm, '');
-            
-            // Handle line breaks sensibly for speech
-            text = text.replace(/\n{2,}/g, '. ');
-            text = text.replace(/\n/g, ' ');
-            
-            return text;
-        }
+        });
     </script>
 </body>
 </html>
