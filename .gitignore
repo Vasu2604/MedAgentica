@@ -84,6 +84,7 @@ models/
 # Logs
 *.log
 logs/
+server.pid
 
 # Temporary files
 *.tmp

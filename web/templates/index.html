@@ -245,9 +245,19 @@
         .message-bubble {
             max-width: 70%;
             padding: 16px 20px;
+            padding-top: 50px; /* Add top padding for action buttons */
             border-radius: 20px;
             position: relative;
             backdrop-filter: blur(20px);
+        }
+        
+        .message-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
         }
         
         .message-bubble-user {
@@ -573,6 +583,68 @@
             display: none !important;
         }
         
+        /* Image Preview Container */
+        .image-preview-container {
+            margin: 16px 0;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        
+        .uploaded-image-preview {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .uploaded-image-preview img {
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .query-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .query-input-container input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .query-input-container input:focus {
+            outline: none;
+            border-color: var(--violet);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .query-input-container button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--violet) 0%, var(--fuchsia) 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .query-input-container button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+        }
+        
         /* Code blocks */
         .message-bubble pre {
             background: rgba(0, 0, 0, 0.3);
@@ -636,6 +708,52 @@
         
         .message-bubble:hover .copy-btn {
             opacity: 1;
+        }
+        
+        .message-bubble:hover .voice-btn {
+            opacity: 1;
+            background: rgba(124, 58, 237, 0.15);
+        }
+        
+        .voice-btn {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 6px;
+            cursor: pointer;
+            color: #E5E7EB;
+            opacity: 0.7; /* Make it more visible by default */
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px;
+        }
+        
+        .voice-btn:hover {
+            opacity: 1; /* Fully visible on hover */
+            background: rgba(124, 58, 237, 0.2);
+            border-color: rgba(124, 58, 237, 0.5);
+            color: #A78BFA;
+        }
+        
+        .voice-btn.playing {
+            background: rgba(124, 58, 237, 0.3);
+            border-color: rgba(124, 58, 237, 0.6);
+            color: #C4B5FD;
+        }
+        
+        .voice-btn.playing svg {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
         
         .copy-btn:hover {
@@ -899,15 +1017,36 @@
             }
         });
         
-        // Show file preview
+        // Show file preview - display image immediately (no query input under image)
         function showFilePreview(file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                addMessage('user', `
-                    <p>Uploaded image for analysis:</p>
-                    <img src="${e.target.result}" class="image-preview" alt="Uploaded image">
-                `);
+                // Store image data URL for later use (but don't display it as text)
+                const imageDataUrl = e.target.result;
+                
+                // Create a preview container with just the image
+                const previewContainer = document.createElement('div');
+                previewContainer.className = 'image-preview-container';
+                previewContainer.setAttribute('data-image-url', imageDataUrl); // Store for later, but don't display
+                previewContainer.innerHTML = `
+                    <div class="uploaded-image-preview">
+                        <p class="text-sm text-gray-400 mb-2">📷 Uploaded Image:</p>
+                        <img src="${e.target.result}" class="image-preview" alt="Uploaded image" style="max-width: 100%; max-height: 400px; border-radius: 8px; margin-bottom: 12px;">
+                        <p class="text-xs text-gray-500" style="margin-top: 8px;">Type your query in the chat input below and press send</p>
+                    </div>
+                `;
+                
+                // Add to messages area
+                const messagesArea = document.getElementById('messages-area');
+                messagesArea.appendChild(previewContainer);
+                
+                // Hide file upload area
                 fileUploadArea.classList.add('hidden');
+                
+                // Focus on main chat input (not under image)
+                setTimeout(() => {
+                    chatInput.focus();
+                }, 100);
             };
             reader.readAsDataURL(file);
         }
@@ -918,7 +1057,33 @@
             
             if (!message && !selectedFile) return;
             
-            // Add user message
+            // Remove preview container if it exists
+            const previewContainer = document.querySelector('.image-preview-container');
+            if (previewContainer) {
+                previewContainer.remove();
+            }
+            
+            // Add user message with image if available
+            if (selectedFile) {
+                // Remove preview container if it exists (before sending)
+                const previewContainer = document.querySelector('.image-preview-container');
+                if (previewContainer) {
+                    previewContainer.remove();
+                }
+                
+                // Create a user message with ONLY the query text (no HTML, no image path)
+                // The image will be shown in the preview, but not in the chat message
+                const queryText = message || "Analyze this image";
+                
+                // Add user message with ONLY text (no HTML code, no image paths)
+                addMessage('user', queryText);
+                
+                // Continue with sending
+                await sendMessageWithFile(message);
+                return;
+            }
+            
+            // Add user message (text only)
             if (message) {
                 addMessage('user', message);
             }
@@ -968,9 +1133,64 @@
                 // Remove loading
                 removeLoadingMessage(loadingId);
                 
-                // Add assistant response
+                // Add assistant response with all image data
                 if (data.status === 'success') {
-                    addMessage('assistant', data.response, data.agent, data.result_image);
+                    const imageData = {
+                        all_images: data.all_images,
+                        original_image: data.original_image || data.uploaded_image,
+                        segmentation_image: data.segmentation_image,
+                        disease_grounding_image: data.disease_grounding_image
+                    };
+                    addMessage('assistant', data.response, data.agent, data.result_image, data.uploaded_image, imageData);
+                } else {
+                    addMessage('assistant', '❌ ' + (data.response || 'An error occurred'), 'error');
+                }
+                
+            } catch (error) {
+                removeLoadingMessage(loadingId);
+                addMessage('assistant', '❌ Failed to send message: ' + error.message, 'error');
+            }
+        }
+        
+        // Send message with file (helper function)
+        async function sendMessageWithFile(message) {
+            if (!selectedFile) return;
+            
+            // Show loading
+            const loadingId = addLoadingMessage();
+            
+            // Update KPI
+            queryCount++;
+            document.getElementById('kpi-queries').textContent = queryCount;
+            
+            try {
+                // Send with image
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+                formData.append('text', message || '');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading
+                removeLoadingMessage(loadingId);
+                
+                // Clear selected file
+                selectedFile = null;
+                
+                // Add assistant response with all image data
+                if (data.status === 'success') {
+                    const imageData = {
+                        all_images: data.all_images,
+                        original_image: data.original_image || data.uploaded_image,
+                        segmentation_image: data.segmentation_image,
+                        disease_grounding_image: data.disease_grounding_image
+                    };
+                    addMessage('assistant', data.response, data.agent, data.result_image, data.uploaded_image, imageData);
                 } else {
                     addMessage('assistant', '❌ ' + (data.response || 'An error occurred'), 'error');
                 }
@@ -982,7 +1202,7 @@
         }
         
         // Add message to chat
-        function addMessage(role, content, agent = null, resultImage = null) {
+        function addMessage(role, content, agent = null, resultImage = null, uploadedImage = null, imageData = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message message-${role}`;
             
@@ -1000,8 +1220,24 @@
                         `;
             }
             
-            // Parse markdown
+            // Parse markdown and filter out image paths/encoded strings
             let formattedContent = content;
+            
+            // Remove any long base64/data URLs or encoded strings that might be displayed as text
+            // This filters out image data URLs that are longer than 50 characters
+            if (formattedContent) {
+                // Remove data URLs (data:image/...) - more aggressive
+                formattedContent = formattedContent.replace(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]{50,}/g, '');
+                // Remove long encoded strings (likely image paths) - more aggressive
+                formattedContent = formattedContent.replace(/[A-Za-z0-9+/=]{80,}/g, '');
+                // Remove any file paths that might be displayed
+                formattedContent = formattedContent.replace(/\/uploads\/[^\s<>"]+/g, '');
+                // Remove HTML img tags completely (they should not be in text content)
+                formattedContent = formattedContent.replace(/<img[^>]*>/gi, '');
+                // Remove any remaining HTML tags that might contain paths
+                formattedContent = formattedContent.replace(/<[^>]*src=["']?[^"']*["']?[^>]*>/gi, '');
+            }
+            
             if (typeof marked !== 'undefined') {
                 marked.setOptions({
                     highlight: function(code, lang) {
@@ -1015,17 +1251,69 @@
                     breaks: true,
                     gfm: true
                 });
-                formattedContent = marked.parse(content);
+                formattedContent = marked.parse(formattedContent);
             }
             
-            // Add result image if present
+            // Add all images if present (for assistant messages)
             let imageHtml = '';
-            if (resultImage) {
-                imageHtml = `<img src="${resultImage}" class="image-preview" alt="Analysis result" onclick="openImageModal(this.src)">`;
+            if (role === 'assistant') {
+                // Check if we have all_images array (three images)
+                const messageData = imageData || {}; // Get additional data if passed
+                const allImages = messageData.all_images || [];
+                
+                console.log('🖼️ Displaying images:', allImages);
+                
+                if (allImages.length > 0) {
+                    // Display all three images in a grid
+                    imageHtml = '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4" style="margin-top: 16px;">';
+                    allImages.forEach((img, idx) => {
+                        if (img.url && !img.url.startsWith('data:')) {
+                            // Only display if it's a valid URL (not data URL or encoded string)
+                            imageHtml += `
+                                <div class="image-container" style="background: rgba(255, 255, 255, 0.02); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                    <p class="text-sm text-gray-400 mb-2" style="font-weight: 600;">${img.label || `Image ${idx + 1}`}:</p>
+                                    <img src="${img.url}" 
+                                         class="image-preview w-full" 
+                                         alt="${img.label}" 
+                                         onclick="openImageModal(this.src)"
+                                         style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; display: block;"
+                                         onerror="console.error('Failed to load image:', this.src); this.style.display='none';">
+                                </div>
+                            `;
+                        }
+                    });
+                    imageHtml += '</div>';
+                } else {
+                    // Fallback to individual images
+                    if (uploadedImage && !uploadedImage.startsWith('data:')) {
+                        imageHtml = `<div class="image-container mb-4" style="margin-top: 16px;">
+                            <p class="text-sm text-gray-400 mb-2">📷 Original X-ray:</p>
+                            <img src="${uploadedImage}" 
+                                 class="image-preview" 
+                                 alt="Uploaded image" 
+                                 onclick="openImageModal(this.src)"
+                                 style="max-width: 100%; max-height: 400px; border-radius: 8px; cursor: pointer; display: block;"
+                                 onerror="console.error('Failed to load image:', this.src);">
+                        </div>`;
+                    }
+                    
+                    if (resultImage && !resultImage.startsWith('data:')) {
+                        imageHtml += `<div class="image-container mb-4" style="margin-top: 16px;">
+                            <p class="text-sm text-gray-400 mb-2">🔍 Analysis Result:</p>
+                            <img src="${resultImage}" 
+                                 class="image-preview" 
+                                 alt="Analysis result" 
+                                 onclick="openImageModal(this.src)"
+                                 style="max-width: 100%; max-height: 400px; border-radius: 8px; cursor: pointer; display: block;"
+                                 onerror="console.error('Failed to load image:', this.src);">
+                        </div>`;
+                    }
+                }
             }
             
-            // Add copy button for assistant messages
+            // Add copy and voice buttons for assistant messages
             let copyBtn = '';
+            let voiceBtn = '';
             if (role === 'assistant') {
                 copyBtn = `
                     <button class="copy-btn" onclick="copyToClipboard(this)" title="Copy message">
@@ -1035,15 +1323,109 @@
                         </svg>
                     </button>
                 `;
+                // Store text in data attribute for voice playback
+                const cleanTextForVoice = content
+                    .replace(/<[^>]*>/g, '') // Remove HTML tags
+                    .replace(/[#*_`]/g, '') // Remove markdown syntax
+                    .replace(/\n+/g, ' ') // Replace newlines with spaces
+                    .replace(/'/g, "&apos;") // Escape single quotes
+                    .replace(/"/g, "&quot;") // Escape double quotes
+                    .substring(0, 5000); // Limit to 5000 characters
+                
+                voiceBtn = `
+                    <button class="voice-btn" onclick="playVoiceResponse(this)" data-text="${cleanTextForVoice}" title="Play voice response">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                    </button>
+                `;
+            }
+            
+            // Clean up any remaining image paths or encoded strings in the content
+            // Remove any text that looks like a long encoded string or file path
+            let cleanFormattedContent = formattedContent;
+            if (cleanFormattedContent) {
+                // Remove any remaining long base64 strings
+                cleanFormattedContent = cleanFormattedContent.replace(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]{50,}/g, '');
+                // Remove any long alphanumeric strings (likely encoded paths) - more aggressive
+                cleanFormattedContent = cleanFormattedContent.replace(/[A-Za-z0-9+/=]{80,}/g, '');
+                // Remove file paths
+                cleanFormattedContent = cleanFormattedContent.replace(/\/uploads\/[^\s<>"]+/g, '');
+                // Remove any HTML img tags with empty or data URLs
+                cleanFormattedContent = cleanFormattedContent.replace(/<img[^>]*src=["']?[^"']*["']?[^>]*>/gi, '');
+                // Remove any HTML img tags with data URLs
+                cleanFormattedContent = cleanFormattedContent.replace(/<img[^>]*src=["']?data:image\/[^"']*["']?[^>]*>/gi, '');
+            }
+            
+            // Add feedback buttons for assistant messages
+            let feedbackHtml = '';
+            if (role === 'assistant') {
+                feedbackHtml = `
+                    <div class="feedback-section" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                        <p class="feedback-question" style="color: #9CA3AF; font-size: 14px; margin-bottom: 12px; font-weight: 500;">Was this helpful?</p>
+                        <div class="feedback-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="feedback-btn" onclick="handleFeedback(this, 'helpful')" style="
+                                background: rgba(255, 255, 255, 0.05);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                color: #E5E7EB;
+                                padding: 8px 16px;
+                                border-radius: 8px;
+                                font-size: 14px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                            " onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(255, 255, 255, 0.2)';" 
+                            onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';">
+                                👍 Helpful
+                            </button>
+                            <button class="feedback-btn" onclick="handleFeedback(this, 'thank_you')" style="
+                                background: rgba(255, 255, 255, 0.05);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                color: #E5E7EB;
+                                padding: 8px 16px;
+                                border-radius: 8px;
+                                font-size: 14px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                            " onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(255, 255, 255, 0.2)';" 
+                            onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';">
+                                ❤️ Thank you
+                            </button>
+                            <button class="feedback-btn" onclick="handleFeedback(this, 'clarification')" style="
+                                background: rgba(255, 255, 255, 0.05);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                color: #E5E7EB;
+                                padding: 8px 16px;
+                                border-radius: 8px;
+                                font-size: 14px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                            " onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(255, 255, 255, 0.2)';" 
+                            onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';">
+                                🤔 Need clarification
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
             
             messageDiv.innerHTML = `
                 <div>
                     ${agentBadge}
                     <div class="message-bubble message-bubble-${role}">
-                        ${copyBtn}
-                        ${formattedContent}
+                        ${role === 'assistant' ? `<div class="message-actions">${copyBtn}${voiceBtn}</div>` : ''}
+                        ${cleanFormattedContent}
                         ${imageHtml}
+                        ${feedbackHtml}
                         </div>
                         </div>
                     `;
@@ -1057,6 +1439,199 @@
                     hljs.highlightElement(block);
                 });
             }
+        }
+        
+        // Handle voice response playback
+        let currentAudio = null;
+        let currentVoiceButton = null;
+        
+        async function playVoiceResponse(button) {
+            // If already playing, stop it
+            if (currentAudio && !currentAudio.paused) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                if (currentVoiceButton) {
+                    currentVoiceButton.classList.remove('playing');
+                    currentVoiceButton.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                    `;
+                }
+                currentAudio = null;
+                currentVoiceButton = null;
+                return;
+            }
+            
+            // Get text from data attribute or message bubble
+            let cleanText = button.getAttribute('data-text') || '';
+            
+            // If no data attribute, try to get text from the message bubble
+            if (!cleanText) {
+                const messageBubble = button.closest('.message-bubble');
+                if (messageBubble) {
+                    // Get text content, excluding buttons and images
+                    const textElements = messageBubble.querySelectorAll('p, div:not(.feedback-section):not(.image-container)');
+                    cleanText = Array.from(textElements)
+                        .map(el => el.textContent || el.innerText)
+                        .join(' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                }
+            }
+            
+            // Decode HTML entities
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = cleanText;
+            cleanText = textarea.value;
+            
+            // Final cleanup
+            cleanText = cleanText
+                .replace(/<[^>]*>/g, '') // Remove any remaining HTML tags
+                .replace(/[#*_`]/g, '') // Remove markdown syntax
+                .replace(/\n+/g, ' ') // Replace newlines with spaces
+                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                .trim()
+                .substring(0, 5000); // Limit to 5000 characters
+            
+            if (!cleanText) {
+                alert('No text available to convert to speech');
+                return;
+            }
+            
+            try {
+                // Update button to show loading
+                button.classList.add('playing');
+                button.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                    </svg>
+                `;
+                
+                // Call the generate-speech endpoint
+                const response = await fetch('/generate-speech', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: cleanText,
+                        voice_id: '21m00Tcm4TlvDk8ikWAM' // Default voice ID (Rachel)
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to generate speech');
+                }
+                
+                // Get audio blob
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                
+                // Create audio element and play
+                currentAudio = new Audio(audioUrl);
+                currentVoiceButton = button;
+                
+                // Update button to show pause icon
+                button.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                `;
+                
+                // Play audio
+                currentAudio.play();
+                
+                // Handle audio end
+                currentAudio.onended = () => {
+                    button.classList.remove('playing');
+                    button.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                    `;
+                    URL.revokeObjectURL(audioUrl);
+                    currentAudio = null;
+                    currentVoiceButton = null;
+                };
+                
+                // Handle audio error
+                currentAudio.onerror = () => {
+                    button.classList.remove('playing');
+                    button.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                    `;
+                    URL.revokeObjectURL(audioUrl);
+                    currentAudio = null;
+                    currentVoiceButton = null;
+                    alert('Error playing audio. Please check your ElevenLabs API key.');
+                };
+                
+            } catch (error) {
+                console.error('Error generating speech:', error);
+                button.classList.remove('playing');
+                button.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                `;
+                alert('Error generating speech. Please check your ElevenLabs API key in the .env file.');
+            }
+        }
+        
+        // Handle feedback button clicks
+        function handleFeedback(button, feedbackType) {
+            // Visual feedback
+            const originalText = button.innerHTML;
+            button.style.background = 'rgba(124, 58, 237, 0.2)';
+            button.style.borderColor = 'rgba(124, 58, 237, 0.5)';
+            button.disabled = true;
+            
+            // Disable all feedback buttons in this section
+            const feedbackSection = button.closest('.feedback-section');
+            if (feedbackSection) {
+                feedbackSection.querySelectorAll('.feedback-btn').forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                });
+            }
+            
+            // Show confirmation
+            const messages = {
+                'helpful': '👍 Thank you for your feedback!',
+                'thank_you': '❤️ You\'re welcome!',
+                'clarification': '🤔 I\'ll try to be clearer next time!'
+            };
+            
+            button.innerHTML = messages[feedbackType] || '✅ Thank you!';
+            
+            // Optional: Send feedback to server
+            // You can add an API call here to log feedback
+            console.log('Feedback received:', feedbackType);
+            
+            // Reset after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.background = 'rgba(255, 255, 255, 0.05)';
+                button.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                button.disabled = false;
+                button.style.opacity = '1';
+                
+                if (feedbackSection) {
+                    feedbackSection.querySelectorAll('.feedback-btn').forEach(btn => {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    });
+                }
+            }, 2000);
         }
         
         // Add loading message

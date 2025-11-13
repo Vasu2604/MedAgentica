@@ -264,7 +264,7 @@ class MedicalCVConfig:
         project_root = os.path.dirname(os.path.abspath(__file__))
         
         # Use absolute paths to model files
-        self.brain_tumor_model_path = os.path.join(project_root, "agents/image_analysis_agent/brain_tumor_agent/models/brain_tumor_segmentation.pth")
+        self.brain_tumor_model_path = os.path.join(project_root, "agents/image_analysis_agent/brain_tumor_agent/BrainMRI-Tumor-Classifier-Pytorch-main/models/model_38")
         self.chest_xray_model_path = os.path.join(project_root, "agents/image_analysis_agent/chest_xray_agent/models/covid_chest_xray_model.pth")
         self.skin_lesion_model_path = os.path.join(project_root, "agents/image_analysis_agent/skin_lesion_agent/models/checkpointN25_.pth.tar")
         self.skin_lesion_segmentation_output_path = os.path.join(project_root, "uploads/skin_lesion_output/overlayed_plot.png")

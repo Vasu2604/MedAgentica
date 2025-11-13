@@ -1,5 +1,6 @@
 
 import os
+import sys
 import uuid
 import tempfile
 from typing import Dict, Union, Optional, List
@@ -7,6 +8,9 @@ import glob
 import threading
 import time
 from io import BytesIO
+
+# Add parent directory to path for imports (must be before other imports)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request, Response, Cookie
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
@@ -37,16 +41,18 @@ project_root = pathlib.Path(__file__).parent.parent.absolute()
 UPLOAD_FOLDER = project_root / "uploads/backend"
 FRONTEND_UPLOAD_FOLDER = project_root / "uploads/frontend"
 SKIN_LESION_OUTPUT = project_root / "uploads/skin_lesion_output"
+CHEST_XRAY_OUTPUT = project_root / "uploads/chest_xray_output"
 SPEECH_DIR = project_root / "uploads/speech"
 
 # Create directories if they don't exist
-for directory in [UPLOAD_FOLDER, FRONTEND_UPLOAD_FOLDER, SKIN_LESION_OUTPUT, SPEECH_DIR]:
+for directory in [UPLOAD_FOLDER, FRONTEND_UPLOAD_FOLDER, SKIN_LESION_OUTPUT, CHEST_XRAY_OUTPUT, SPEECH_DIR]:
     os.makedirs(directory, exist_ok=True)
 
 # Convert back to strings for compatibility
 UPLOAD_FOLDER = str(UPLOAD_FOLDER)
 FRONTEND_UPLOAD_FOLDER = str(FRONTEND_UPLOAD_FOLDER)
 SKIN_LESION_OUTPUT = str(SKIN_LESION_OUTPUT)
+CHEST_XRAY_OUTPUT = str(CHEST_XRAY_OUTPUT)
 SPEECH_DIR = str(SPEECH_DIR)
 
 # Mount static files directory
@@ -59,8 +65,9 @@ if data_dir.exists():
 if uploads_dir.exists():
     app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
-# Set up templates
-templates = Jinja2Templates(directory="templates")
+# Set up templates - use absolute path relative to web directory
+templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+templates = Jinja2Templates(directory=templates_dir)
 
 # Initialize ElevenLabs client
 client = ElevenLabs(
@@ -90,6 +97,106 @@ def cleanup_old_audio():
 cleanup_thread = threading.Thread(target=cleanup_old_audio, daemon=True)
 cleanup_thread.start()
 
+# Session-based image persistence with expiry
+# Store recently uploaded images per session (session_id -> {image_path, timestamp})
+from datetime import datetime, timedelta
+import logging
+
+# Configure structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+session_images: Dict[str, Dict] = {}
+session_images_lock = threading.Lock()
+
+# Security configuration
+SESSION_EXPIRY_HOURS = 2  # Sessions expire after 2 hours
+COOKIE_MAX_AGE = 7200  # 2 hours in seconds
+
+def audit_log(action: str, session_id: str, details: str = ""):
+    """Audit logging for security and compliance"""
+    logger.info(f"AUDIT: action={action} session={session_id[:8]}... details={details}")
+
+def store_session_image(session_id: str, image_path: str):
+    """Store uploaded image path for a session with timestamp"""
+    with session_images_lock:
+        session_images[session_id] = {
+            'image_path': image_path,
+            'timestamp': datetime.now(),
+            'access_count': 0
+        }
+        audit_log("IMAGE_STORED", session_id, f"path={image_path}")
+        print(f"📸 Stored image for session {session_id}: {image_path}")
+
+def get_session_image(session_id: str) -> Optional[str]:
+    """Retrieve uploaded image path for a session if not expired"""
+    with session_images_lock:
+        session_data = session_images.get(session_id)
+        
+        if not session_data:
+            return None
+        
+        # Check if session is expired
+        age = datetime.now() - session_data['timestamp']
+        if age > timedelta(hours=SESSION_EXPIRY_HOURS):
+            logger.warning(f"Session {session_id[:8]}... expired (age: {age})")
+            del session_images[session_id]
+            return None
+        
+        image_path = session_data['image_path']
+        
+        if image_path and os.path.exists(image_path):
+            session_data['access_count'] += 1
+            audit_log("IMAGE_ACCESSED", session_id, f"path={image_path} count={session_data['access_count']}")
+            print(f"✅ Retrieved image for session {session_id}: {image_path}")
+            return image_path
+        elif image_path:
+            logger.error(f"Image path exists in session but file not found: {image_path}")
+            return None
+        return None
+
+def clear_session_image(session_id: str):
+    """Clear uploaded image path for a session"""
+    with session_images_lock:
+        if session_id in session_images:
+            audit_log("IMAGE_CLEARED", session_id)
+            print(f"🗑️ Cleared image for session {session_id}")
+            del session_images[session_id]
+
+def cleanup_expired_sessions():
+    """Remove expired sessions (run periodically)"""
+    with session_images_lock:
+        expired = []
+        current_time = datetime.now()
+        
+        for session_id, data in session_images.items():
+            age = current_time - data['timestamp']
+            if age > timedelta(hours=SESSION_EXPIRY_HOURS):
+                expired.append(session_id)
+        
+        for session_id in expired:
+            logger.info(f"Cleaning up expired session: {session_id[:8]}...")
+            del session_images[session_id]
+        
+        if expired:
+            logger.info(f"Cleaned up {len(expired)} expired sessions")
+
+# Start background cleanup thread
+def session_cleanup_worker():
+    """Background worker to clean up expired sessions every 30 minutes"""
+    while True:
+        try:
+            time.sleep(1800)  # 30 minutes
+            cleanup_expired_sessions()
+        except Exception as e:
+            logger.error(f"Session cleanup error: {e}")
+
+cleanup_thread_sessions = threading.Thread(target=session_cleanup_worker, daemon=True)
+cleanup_thread_sessions.start()
+
 class QueryRequest(BaseModel):
     query: str
     conversation_history: List = []
@@ -105,8 +212,80 @@ async def index(request: Request):
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint for Docker health checks"""
-    return {"status": "healthy"}
+    """Basic health check endpoint for Docker health checks"""
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+@app.get("/health/ready")
+async def readiness_check():
+    """
+    Comprehensive readiness check - verifies all dependencies are operational.
+    Returns 200 if ready, 503 if not ready.
+    """
+    checks = {
+        "server": "ok",
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    all_healthy = True
+    
+    # Check if config is loaded
+    try:
+        from config import Config
+        test_config = Config()
+        checks["config"] = "ok"
+    except Exception as e:
+        checks["config"] = f"error: {str(e)}"
+        all_healthy = False
+    
+    # Check if agent system is available
+    try:
+        from agents.agent_decision import init_agent_state
+        test_state = init_agent_state()
+        checks["agent_system"] = "ok"
+    except Exception as e:
+        checks["agent_system"] = f"error: {str(e)}"
+        all_healthy = False
+    
+    # Check upload directories
+    try:
+        for directory in [UPLOAD_FOLDER, SKIN_LESION_OUTPUT, CHEST_XRAY_OUTPUT]:
+            if not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+        checks["upload_directories"] = "ok"
+    except Exception as e:
+        checks["upload_directories"] = f"error: {str(e)}"
+        all_healthy = False
+    
+    # Check session storage
+    try:
+        session_count = len(session_images)
+        checks["session_storage"] = f"ok ({session_count} active sessions)"
+    except Exception as e:
+        checks["session_storage"] = f"error: {str(e)}"
+        all_healthy = False
+    
+    status_code = 200 if all_healthy else 503
+    checks["overall_status"] = "ready" if all_healthy else "not_ready"
+    
+    return JSONResponse(status_code=status_code, content=checks)
+
+@app.get("/health/live")
+def liveness_check():
+    """Liveness check - server is running"""
+    return {"status": "alive", "timestamp": datetime.now().isoformat()}
+
+@app.get("/metrics")
+def metrics():
+    """Basic metrics endpoint"""
+    with session_images_lock:
+        active_sessions = len(session_images)
+        total_accesses = sum(data['access_count'] for data in session_images.values())
+    
+    return {
+        "active_sessions": active_sessions,
+        "total_image_accesses": total_accesses,
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.post("/chat")
 def chat(
@@ -120,11 +299,42 @@ def chat(
         session_id = str(uuid.uuid4())
     
     try:
-        response_data = process_query(request.query)
+        # Check if user is referring to a previously uploaded image
+        query_lower = request.query.lower()
+        image_analysis_keywords = [
+            "analyze", "image", "picture", "photo", "scan", "x-ray", "xray", "mri",
+            "the image", "this image", "uploaded image", "the picture", "this picture",
+            "check", "look at", "examine", "diagnose", "detect", "classify"
+        ]
+        
+        # Check if query mentions image analysis
+        mentions_image = any(keyword in query_lower for keyword in image_analysis_keywords)
+        
+        # If user mentions image analysis and we have a recent image in session, use it
+        query_input = request.query
+        if mentions_image and session_id:
+            stored_image_path = get_session_image(session_id)
+            if stored_image_path:
+                print(f"🔍 User query mentions image analysis - Using stored image: {stored_image_path}")
+                # Create dict input with both text and image
+                query_input = {"text": request.query, "image": stored_image_path}
+            else:
+                print(f"⚠️ User mentions image but no stored image found for session {session_id}")
+        
+        response_data = process_query(query_input)
         response_text = response_data['messages'][-1].content
         
-        # Set session cookie
-        response.set_cookie(key="session_id", value=session_id)
+        # Set secure session cookie
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            max_age=COOKIE_MAX_AGE,
+            httponly=True,  # Prevent XSS attacks
+            samesite='strict'  # CSRF protection
+            # Note: 'secure=True' should be enabled in production with HTTPS
+        )
+        
+        audit_log("CHAT_REQUEST", session_id, f"query_length={len(request.query)}")
 
         # Check if the agent is skin lesion segmentation and find the image path
         result = {
@@ -199,13 +409,44 @@ async def upload_image(
     with open(file_path, "wb") as f:
         f.write(file_content)
     
+    # Store image path in session for later reference
+    store_session_image(session_id, file_path)
+    
     try:
         query = {"text": text, "image": file_path}
         response_data = process_query(query)
         response_text = response_data['messages'][-1].content
+        
+        # Clean response text - remove any image paths or encoded strings
+        if response_text:
+            import re
+            # Remove data URLs
+            response_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{50,}', '', response_text)
+            # Remove long encoded strings
+            response_text = re.sub(r'[A-Za-z0-9+/=]{80,}', '', response_text)
+            # Remove file paths
+            response_text = re.sub(r'/uploads/[^\s<>"]+', '', response_text)
+            # Remove image file extensions with paths
+            response_text = re.sub(r'[^\s<>"]+\.(png|jpg|jpeg|gif|bmp)', '', response_text, flags=re.IGNORECASE)
 
-        # Set session cookie
-        response.set_cookie(key="session_id", value=session_id)
+        # Set secure session cookie
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            max_age=COOKIE_MAX_AGE,
+            httponly=True,
+            samesite='strict'
+        )
+        
+        audit_log("IMAGE_UPLOAD", session_id, f"filename={image.filename}")
+
+        # Get image URL for frontend (before deletion)
+        # Convert file path to URL path
+        image_url = None
+        if file_path:
+            # Get relative path from project root
+            rel_path = os.path.relpath(file_path, project_root)
+            image_url = f"/{rel_path.replace(os.sep, '/')}"
 
         # Check if the agent is skin lesion segmentation and find the image path
         result = {
@@ -215,6 +456,10 @@ async def upload_image(
             "thinking": f"🖼️ Analyzing image...\n📋 Selected: {response_data['agent_name'].replace('_', ' ').title()}",
             "confidence": 0.95
         }
+        
+        # Add the uploaded image URL to the response
+        if image_url:
+            result["uploaded_image"] = image_url
         
         # Add suggested follow-ups for image analysis
         result["suggestions"] = ["Is this serious?", "What should I do next?", "Should I see a doctor?"]
@@ -227,11 +472,107 @@ async def upload_image(
             else:
                 print("Skin Lesion Output path does not exist.")
         
-        # Remove temporary file after sending
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            print(f"Failed to remove temporary file: {str(e)}")
+        # For chest X-ray agent, include all three images
+        if "CHEST_XRAY" in response_data["agent_name"]:
+            print(f"🔍 Processing CHEST_XRAY response data keys: {list(response_data.keys())}")
+            
+            # Original image - always use uploaded image URL
+            if image_url:
+                result["uploaded_image"] = image_url
+                result["original_image"] = image_url
+            # Also check original_image_url from state
+            if "original_image_url" in response_data and response_data["original_image_url"]:
+                result["original_image"] = response_data["original_image_url"]
+            
+            # Segmentation image - check multiple sources
+            segmentation_image_url = None
+            if "segmentation_image_url" in response_data and response_data["segmentation_image_url"]:
+                segmentation_image_url = response_data["segmentation_image_url"]
+            elif "segmentation_path" in response_data and response_data["segmentation_path"]:
+                seg_path = response_data["segmentation_path"]
+                if seg_path and os.path.exists(seg_path):
+                    rel_path = os.path.relpath(seg_path, project_root)
+                    segmentation_image_url = f"/{rel_path.replace(os.sep, '/')}"
+            
+            # Also check analysis_results for segmentation
+            if not segmentation_image_url and "analysis_results" in response_data:
+                analysis_results = response_data.get("analysis_results", {})
+                segmentation = analysis_results.get("segmentation", {})
+                if segmentation and not segmentation.get("error"):
+                    seg_path = segmentation.get("segmentation_image_path")
+                    if seg_path and os.path.exists(seg_path):
+                        rel_path = os.path.relpath(seg_path, project_root)
+                        segmentation_image_url = f"/{rel_path.replace(os.sep, '/')}"
+            
+            if segmentation_image_url:
+                result["segmentation_image"] = segmentation_image_url
+                print(f"✅ Segmentation image URL: {segmentation_image_url}")
+            
+            # Disease grounding image - check multiple sources
+            disease_grounding_url = None
+            if "disease_grounding_url" in response_data and response_data["disease_grounding_url"]:
+                disease_grounding_url = response_data["disease_grounding_url"]
+            elif "disease_grounding_path" in response_data and response_data["disease_grounding_path"]:
+                grounding_path = response_data["disease_grounding_path"]
+                if grounding_path and os.path.exists(grounding_path):
+                    rel_path = os.path.relpath(grounding_path, project_root)
+                    disease_grounding_url = f"/{rel_path.replace(os.sep, '/')}"
+            
+            # Also check analysis_results for disease grounding
+            if not disease_grounding_url and "analysis_results" in response_data:
+                analysis_results = response_data.get("analysis_results", {})
+                disease_grounding = analysis_results.get("disease_grounding", {})
+                if disease_grounding and not disease_grounding.get("error"):
+                    grounding_path = disease_grounding.get("combined_visualization_path")
+                    if grounding_path and os.path.exists(grounding_path):
+                        rel_path = os.path.relpath(grounding_path, project_root)
+                        disease_grounding_url = f"/{rel_path.replace(os.sep, '/')}"
+            
+            if disease_grounding_url:
+                result["disease_grounding_image"] = disease_grounding_url
+                print(f"✅ Disease grounding image URL: {disease_grounding_url}")
+            
+            # All three images for display - ALWAYS include all available
+            images = []
+            
+            # Original image (always available)
+            original_url = result.get("original_image") or result.get("uploaded_image")
+            if original_url:
+                images.append({
+                    "type": "original",
+                    "url": original_url,
+                    "label": "Original X-ray"
+                })
+            
+            # Segmentation image
+            if result.get("segmentation_image"):
+                images.append({
+                    "type": "segmentation",
+                    "url": result["segmentation_image"],
+                    "label": "Segmentation Overlay"
+                })
+            
+            # Disease grounding image
+            if result.get("disease_grounding_image"):
+                images.append({
+                    "type": "grounding",
+                    "url": result["disease_grounding_image"],
+                    "label": "Disease Grounding"
+                })
+            
+            print(f"📸 Total images to display: {len(images)}")
+            for img in images:
+                print(f"  - {img['label']}: {img['url']}")
+            
+            if images:
+                result["all_images"] = images
+                # For backward compatibility, set result_image to first available
+                result["result_image"] = images[0]["url"]
+            else:
+                print("⚠️ No images found to display!")
+        
+        # Don't remove the file immediately - let it be served by static files
+        # The cleanup can happen later or via a separate cleanup job
         
         return result
     except Exception as e:
@@ -250,8 +591,16 @@ def validate_medical_output(
         session_id = str(uuid.uuid4())
 
     try:
-        # Set session cookie
-        response.set_cookie(key="session_id", value=session_id)
+        # Set secure session cookie
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            max_age=COOKIE_MAX_AGE,
+            httponly=True,
+            samesite='strict'
+        )
+        
+        audit_log("VALIDATION_SUBMIT", session_id, f"result={validation_result}")
         
         # Re-run the agent decision system with the validation input
         validation_query = f"Validation result: {validation_result}"

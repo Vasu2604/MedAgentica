@@ -1,110 +1,180 @@
+"""
+Brain Tumor Classification Agent using BrainMRI-Tumor-Classifier-Pytorch-main.
+
+This module wraps the BrainMRI-Tumor-Classifier-Pytorch model to classify brain MRI images
+into 5 categories: No Tumor, Pituitary, Glioma, Meningioma, Other.
+"""
+
 import os
+import sys
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
-from PIL import Image
+import torch.nn.functional as F
 import numpy as np
+from PIL import Image
+from torchvision import transforms
+import logging
+
+# Add BrainMRI-Tumor-Classifier-Pytorch-main to path
+brain_tumor_base_path = os.path.join(
+    os.path.dirname(__file__),
+    "BrainMRI-Tumor-Classifier-Pytorch-main"
+)
+if os.path.exists(brain_tumor_base_path):
+    sys.path.insert(0, brain_tumor_base_path)
+    sys.path.insert(0, os.path.join(brain_tumor_base_path, "src"))
+
+logger = logging.getLogger(__name__)
+
+# Device setup
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+logger.info(f"Brain Tumor Classifier using device: {DEVICE}")
+
+# Import the model from the BrainMRI classifier
+try:
+    from src.model import MyModel, load_model
+    from src.utils import predict as predict_utils
+except ImportError as e:
+    logger.warning(f"Could not import BrainMRI classifier modules: {e}")
+    MyModel = None
+    load_model = None
+    predict_utils = None
+
 
 class BrainTumorAgent:
     """
-    Brain tumor detection agent - placeholder implementation.
+    Brain Tumor Classification Agent using BrainMRI-Tumor-Classifier-Pytorch model.
+    Classifies brain MRI images into: No Tumor, Pituitary, Glioma, Meningioma, Other.
     """
-
-    def __init__(self, model_path=None):
+    
+    # Label mapping
+    LABEL_DICT = {
+        0: "No Tumor",
+        1: "Pituitary",
+        2: "Glioma",
+        3: "Meningioma",
+        4: "Other"
+    }
+    
+    def __init__(self, model_path=None, device=None):
         """
-        Initialize the brain tumor agent.
-
+        Initialize the Brain Tumor Classifier.
+        
         Args:
-            model_path: Path to the trained model file
+            model_path: Path to the trained model file (model_38)
+            device: Torch device (cuda/cpu), auto-detected if None
         """
+        self.device = device if device is not None else DEVICE
+        
+        # Default model path
+        if model_path is None:
+            model_path = os.path.join(
+                os.path.dirname(__file__),
+                "BrainMRI-Tumor-Classifier-Pytorch-main/models/model_38"
+            )
+        
         self.model_path = model_path
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = None
-
-        # Try to load the model if it exists
-        if model_path and os.path.exists(model_path):
-            try:
-                # For now, we'll use a simple placeholder since the actual model implementation
-                # would require a full CNN architecture and training
-                print(f"[BrainTumorAgent] Model path exists: {model_path}")
-                # In a real implementation, you would load the trained model here
-                self.model_loaded = True
-            except Exception as e:
-                print(f"[BrainTumorAgent] Could not load model: {e}")
-                self.model_loaded = False
-        else:
-            print(f"[BrainTumorAgent] Model not found at {model_path}")
-            self.model_loaded = False
-
-    def predict(self, image_path: str) -> str:
+        self.class_names = list(self.LABEL_DICT.values())
+        self._load_model()
+    
+    def _load_model(self):
+        """Load the trained model."""
+        try:
+            if not os.path.exists(self.model_path):
+                logger.warning(f"Model not found at {self.model_path}. Classification will not be available.")
+                return None
+            
+            if load_model is None:
+                logger.error("Could not import load_model from BrainMRI classifier")
+                return None
+            
+            self.model = load_model(self.model_path, self.device)
+            logger.info(f"✅ Brain Tumor Classifier model loaded from {self.model_path}")
+        except Exception as e:
+            logger.error(f"Error loading brain tumor model from {self.model_path}: {e}")
+            import traceback
+            traceback.print_exc()
+            self.model = None
+    
+    def get_data_transforms(self):
+        """Get image preprocessing transforms."""
+        return transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    
+    def predict(self, image_path: str) -> dict:
         """
-        Analyze brain MRI image for tumor detection.
-
+        Predict brain tumor classification.
+        
         Args:
             image_path: Path to the brain MRI image
-
+            
         Returns:
-            Analysis result as string
+            dict: Prediction results with class, confidence, and probabilities
         """
+        if self.model is None:
+            return {
+                "error": "Model not loaded",
+                "predicted_class": None,
+                "confidence": 0.0,
+                "all_probabilities": []
+            }
+        
         try:
-            if not os.path.exists(image_path):
-                return "Error: Image file not found."
-
-            # Check if it's actually an image file
-            try:
-                img = Image.open(image_path)
-                img.verify()  # Verify it's a valid image
-                img.close()
-            except Exception as e:
-                return f"Error: Invalid image file: {e}"
-
-            # For now, return a placeholder response since we don't have a trained model
-            # In a real implementation, this would run the image through the CNN model
-            if self.model_loaded:
-                # Placeholder for actual model prediction
-                return "Brain MRI analysis completed. Tumor detection requires specialized medical expertise - please consult with a radiologist for accurate diagnosis."
-            else:
-                # Safe fallback response
-                return "Brain MRI analysis indicates the need for professional medical evaluation. This AI analysis is for informational purposes only and cannot replace expert radiological assessment."
-
+            # Load and preprocess image
+            image = Image.open(image_path).convert("RGB")
+            transform = self.get_data_transforms()
+            img_tensor = transform(image).unsqueeze(0).to(self.device)
+            
+            # Make prediction
+            self.model.eval()
+            with torch.no_grad():
+                outputs = self.model(img_tensor)
+                probabilities = F.softmax(outputs, dim=1)[0]
+                predicted_class_idx = torch.argmax(probabilities).item()
+            
+            # Format results
+            class_probs = {
+                self.LABEL_DICT[i]: probabilities[i].item() * 100 
+                for i in range(len(self.LABEL_DICT))
+            }
+            
+            sorted_probs = sorted(
+                class_probs.items(), 
+                key=lambda x: x[1], 
+                reverse=True
+            )
+            
+            predicted_class = self.LABEL_DICT[predicted_class_idx]
+            confidence = probabilities[predicted_class_idx].item() * 100
+            
+            return {
+                'predicted_class': predicted_class,
+                'confidence': confidence,
+                'all_probabilities': sorted_probs,
+                'no_tumor_probability': class_probs.get("No Tumor", 0.0),
+                'pituitary_probability': class_probs.get("Pituitary", 0.0),
+                'glioma_probability': class_probs.get("Glioma", 0.0),
+                'meningioma_probability': class_probs.get("Meningioma", 0.0),
+                'other_probability': class_probs.get("Other", 0.0),
+            }
         except Exception as e:
-            print(f"[BrainTumorAgent] Error during prediction: {e}")
-            return f"Error analyzing brain MRI: {str(e)}. Please consult with a healthcare professional for proper evaluation."
+            logger.error(f"Error during brain tumor prediction for {image_path}: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "error": str(e),
+                "predicted_class": None,
+                "confidence": 0.0,
+                "all_probabilities": []
+            }
+    
+    def is_available(self) -> bool:
+        """Check if the model is loaded and available."""
+        return self.model is not None
 
-    def preprocess_image(self, image_path: str):
-        """
-        Preprocess the image for model input.
 
-        Args:
-            image_path: Path to the image file
 
-        Returns:
-            Preprocessed tensor
-        """
-        # Placeholder for image preprocessing
-        # In a real implementation, this would resize, normalize, etc.
-        try:
-            image = Image.open(image_path).convert('RGB')
-            # Add actual preprocessing here based on your model requirements
-            return image
-        except Exception as e:
-            raise ValueError(f"Error preprocessing image: {e}")
-
-    def load_model(self):
-        """
-        Load the trained brain tumor detection model.
-
-        Returns:
-            Loaded model or None if loading fails
-        """
-        # Placeholder for model loading
-        # In a real implementation, this would load the actual PyTorch model
-        if self.model_path and os.path.exists(self.model_path):
-            try:
-                # Load actual model here when available
-                print(f"[BrainTumorAgent] Would load model from {self.model_path}")
-                return None  # Placeholder
-            except Exception as e:
-                print(f"[BrainTumorAgent] Failed to load model: {e}")
-                return None
-        return None

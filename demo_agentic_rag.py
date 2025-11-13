@@ -7,8 +7,18 @@ This is a demonstration of an agentic RAG system that includes:
 3. Reflection Agent - Evaluates retrieved documents and decides if re-retrieval needed
 4. Response Synthesis Agent - Generates final response
 
+NEW: Full Multi-Agent System Demo
+This demo now includes all agents:
+- RAG Agent (medical knowledge)
+- Web Search Agent (recent information)
+- Conversation Agent (general chat)
+- Chest X-ray Agent (MedRAX - 18-disease classification, segmentation, report generation, disease grounding)
+- Brain Tumor Agent (MRI analysis)
+- Skin Lesion Agent (classification)
+
 Usage:
-    python demo_agentic_rag.py
+    python demo_agentic_rag.py              # Run full system demo (default)
+    python demo_agentic_rag.py --rag-only    # Run RAG-only demo (backward compatibility)
 """
 
 import os
@@ -527,12 +537,12 @@ Your Response (as a caring physician):"""
         return final_response
 
 
-def main():
+def demo_rag_only():
     """
-    Demo script to test the Agentic RAG system.
+    Demo script to test the Agentic RAG system only (backward compatibility).
     """
     print("\n" + "="*80)
-    print("🏥 AGENTIC RAG SYSTEM DEMO - Medical Assistant")
+    print("🏥 AGENTIC RAG SYSTEM DEMO - Medical Assistant (RAG Only)")
     print("="*80 + "\n")
     
     # Configuration - REPLACE WITH YOUR CREDENTIALS
@@ -613,6 +623,191 @@ def main():
         print(f"\n❌ Error: {e}")
         import traceback
         traceback.print_exc()
+
+
+def demo_full_system():
+    """
+    Comprehensive demo script to test the full Multi-Agent Medical Assistant system.
+    This includes all agents: RAG, Web Search, Brain Tumor, Chest X-ray (with MedRAX), Skin Lesion, and Conversation.
+    """
+    print("\n" + "="*80)
+    print("🏥 MULTI-AGENT MEDICAL ASSISTANT - Full System Demo")
+    print("="*80 + "\n")
+    
+    # Import the full agent system
+    try:
+        from agents.agent_decision import process_query
+        print("✅ Successfully imported full agent system")
+    except Exception as e:
+        print(f"❌ Error importing agent system: {e}")
+        import traceback
+        traceback.print_exc()
+        return
+    
+    print("\n" + "="*80)
+    print("📋 DEMO QUERIES - Testing All Agents")
+    print("="*80 + "\n")
+    
+    try:
+        # Demo Query 1: RAG Agent - Medical knowledge query
+        print("\n" + "="*80)
+        print("🔍 Query 1: RAG Agent - Medical Knowledge")
+        print("="*80)
+        query1 = "What are the common symptoms of type 2 diabetes?"
+        print(f"\nUser Query: {query1}\n")
+        
+        response_data1 = process_query(query1)
+        response1 = response_data1['messages'][-1].content if response_data1.get('messages') else str(response_data1)
+        agent1 = response_data1.get('agent_name', 'Unknown')
+        
+        print(f"\n🤖 Selected Agent: {agent1}")
+        print(f"\n📝 Response:")
+        print(response1)
+        print("\n" + "-"*80)
+        
+        # Demo Query 2: Web Search Agent - Recent medical information
+        print("\n" + "="*80)
+        print("🔍 Query 2: Web Search Agent - Recent Medical Information")
+        print("="*80)
+        query2 = "What are the latest treatments for COVID-19 in 2024?"
+        print(f"\nUser Query: {query2}\n")
+        
+        response_data2 = process_query(query2)
+        response2 = response_data2['messages'][-1].content if response_data2.get('messages') else str(response_data2)
+        agent2 = response_data2.get('agent_name', 'Unknown')
+        
+        print(f"\n🤖 Selected Agent: {agent2}")
+        print(f"\n📝 Response:")
+        print(response2[:500] + "..." if len(response2) > 500 else response2)
+        print("\n" + "-"*80)
+        
+        # Demo Query 3: Conversation Agent - General chat
+        print("\n" + "="*80)
+        print("🔍 Query 3: Conversation Agent - General Chat")
+        print("="*80)
+        query3 = "Hello! How are you?"
+        print(f"\nUser Query: {query3}\n")
+        
+        response_data3 = process_query(query3)
+        response3 = response_data3['messages'][-1].content if response_data3.get('messages') else str(response_data3)
+        agent3 = response_data3.get('agent_name', 'Unknown')
+        
+        print(f"\n🤖 Selected Agent: {agent3}")
+        print(f"\n📝 Response:")
+        print(response3)
+        print("\n" + "-"*80)
+        
+        # Demo Query 4: Chest X-ray Agent (with MedRAX) - Image analysis
+        print("\n" + "="*80)
+        print("🔍 Query 4: Chest X-ray Agent (MedRAX) - Image Analysis")
+        print("="*80)
+        
+        # Try to find a sample chest X-ray image
+        import pathlib
+        project_root = pathlib.Path(__file__).parent.absolute()
+        sample_images_dir = project_root / "sample_images" / "chest_x-ray_covid_and_normal"
+        
+        chest_xray_image = None
+        if sample_images_dir.exists():
+            image_files = list(sample_images_dir.glob("*.jpg")) + list(sample_images_dir.glob("*.jpeg")) + list(sample_images_dir.glob("*.png"))
+            if image_files:
+                chest_xray_image = str(image_files[0])
+                print(f"\n✅ Found sample image: {chest_xray_image}")
+        
+        if chest_xray_image and os.path.exists(chest_xray_image):
+            query4 = "Do I have TB or not? Analyze this chest X-ray."
+            print(f"\nUser Query: {query4}")
+            print(f"Image: {chest_xray_image}\n")
+            
+            response_data4 = process_query({
+                "text": query4,
+                "image": chest_xray_image
+            })
+            response4 = response_data4['messages'][-1].content if response_data4.get('messages') else str(response_data4)
+            agent4 = response_data4.get('agent_name', 'Unknown')
+            
+            print(f"\n🤖 Selected Agent: {agent4}")
+            print(f"\n📝 Response:")
+            print(response4[:1000] + "..." if len(response4) > 1000 else response4)
+            
+            # Show image URLs if available
+            if response_data4.get('original_image_url'):
+                print(f"\n🖼️  Original Image: {response_data4.get('original_image_url')}")
+            if response_data4.get('segmentation_image_url'):
+                print(f"🖼️  Segmentation Image: {response_data4.get('segmentation_image_url')}")
+            if response_data4.get('disease_grounding_url'):
+                print(f"🖼️  Disease Grounding Image: {response_data4.get('disease_grounding_url')}")
+        else:
+            print("\n⚠️  Note: No sample chest X-ray image found.")
+            print("   To test this, provide an image path in the query dictionary.")
+            print("   Example: process_query({'text': 'Analyze this chest X-ray', 'image': '/path/to/image.jpg'})")
+        
+        print("\n" + "-"*80)
+        
+        # Demo Query 5: Brain Tumor Agent - Image analysis
+        print("\n" + "="*80)
+        print("🔍 Query 5: Brain Tumor Agent - Image Analysis")
+        print("="*80)
+        print("\n⚠️  Note: This requires a brain MRI image file.")
+        print("   To test this, provide an image path in the query dictionary.")
+        print("   Example: process_query({'text': 'Analyze this brain MRI', 'image': '/path/to/image.jpg'})")
+        print("\n" + "-"*80)
+        
+        # Demo Query 6: Skin Lesion Agent - Image analysis
+        print("\n" + "="*80)
+        print("🔍 Query 6: Skin Lesion Agent - Image Analysis")
+        print("="*80)
+        print("\n⚠️  Note: This requires a skin lesion image file.")
+        print("   To test this, provide an image path in the query dictionary.")
+        print("   Example: process_query({'text': 'Analyze this skin lesion', 'image': '/path/to/image.jpg'})")
+        print("\n" + "-"*80)
+        
+        # Update summary based on what was tested
+        chest_xray_tested = chest_xray_image and os.path.exists(chest_xray_image) if 'chest_xray_image' in locals() else False
+        
+        print("\n" + "="*80)
+        print("✅ Full System Demo completed successfully!")
+        print("="*80)
+        print("\n📝 Summary:")
+        print(f"   • RAG Agent: ✅ Tested")
+        print(f"   • Web Search Agent: ✅ Tested")
+        print(f"   • Conversation Agent: ✅ Tested")
+        if chest_xray_tested:
+            print(f"   • Chest X-ray Agent (MedRAX): ✅ Tested with sample image")
+            print(f"     - 18-disease classification")
+            print(f"     - Anatomical segmentation")
+            print(f"     - Report generation (Findings & Impression)")
+            print(f"     - Disease grounding/visualization")
+        else:
+            print(f"   • Chest X-ray Agent (MedRAX): ⚠️  Requires image file")
+        print(f"   • Brain Tumor Agent: ⚠️  Requires image file")
+        print(f"   • Skin Lesion Agent: ⚠️  Requires image file")
+        print("\n💡 To test image agents, use:")
+        print("   process_query({'text': 'Your query', 'image': '/path/to/image.jpg'})")
+        print("\n💡 Chest X-ray Agent Features (MedRAX):")
+        print("   - Multi-disease classification (18 pathologies)")
+        print("   - Anatomical structure segmentation")
+        print("   - Automated radiology report generation")
+        print("   - Disease localization with bounding boxes")
+        print("="*80 + "\n")
+        
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def main():
+    """
+    Main demo function - runs the full system demo by default.
+    Use --rag-only flag to run only the RAG demo.
+    """
+    import sys
+    
+    if "--rag-only" in sys.argv:
+        demo_rag_only()
+    else:
+        demo_full_system()
 
 
 if __name__ == "__main__":

@@ -280,3 +280,5 @@ zstandard==0.23.0
 duckduckgo-search>=6.0.0
 rouge-score>=0.1.2
 pdfplumber>=0.11.0
+# MedRAX dependencies
+torchxrayvision>=0.0.37
