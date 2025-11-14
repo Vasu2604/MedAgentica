@@ -64,15 +64,17 @@ python quick_evaluate.py
 - JSON data for analysis
 
 ### 🩺 **Medical Image Analysis**
-- Brain Tumor Detection (Segmentation)
-- Chest X-Ray Analysis (COVID-19 Detection)
-- Skin Lesion Classification
+- **Brain Tumor Detection** - MRI segmentation and classification
+- **Chest X-Ray Analysis** - 18+ disease detection (COVID-19, Pneumonia, Atelectasis, etc.)
+- **Skin Lesion Classification** - Benign vs Malignant classification with ABCDE criteria
 
-### 🌐 **Web Interface**
-- FastAPI REST API
-- React-style UI
-- Real-time chat
-- Image upload & analysis
+### 🌐 **Neo-Aurora Web Interface**
+- **Beautiful Aurora Theme** - Animated background with floating orbs
+- **Glassmorphism UI** - Modern frosted glass design
+- **Real-time KPI Dashboard** - Live statistics (Active Agents, Queries, Response Time, Success Rate)
+- **Multi-Agent Chat** - Color-coded agent badges and intelligent routing
+- **Image Upload & Analysis** - Drag & drop, preview, and full-screen modal
+- **Markdown Support** - Rich text rendering with syntax highlighting
 
 ---
 
@@ -138,8 +140,14 @@ response = rag.query("What are symptoms of diabetes?")
 print(response['response'])
 ```
 
-### 2. Web Application
+### 2. Web Application (Neo-Aurora Interface)
 
+**Option A: Python Launcher (Recommended)**
+```bash
+python launch.py
+```
+
+**Option B: Manual Launch**
 ```bash
 uvicorn app:app --reload
 ```
@@ -147,10 +155,13 @@ uvicorn app:app --reload
 **Access**: http://localhost:8000
 
 **Features**:
-- Chat interface
-- Image upload & analysis
-- Human validation workflow
-- Speech-to-text & text-to-speech
+- 🌌 Beautiful Aurora-themed chat interface
+- 📊 Live KPI dashboard with real-time metrics
+- 🎨 Color-coded agent badges (Conversation, RAG, Web Search, Medical)
+- 📎 Image upload with drag & drop support
+- 💬 Markdown rendering with syntax highlighting
+- 🖼️ Full-screen image modal viewer
+- ⌨️ Keyboard shortcuts and accessibility features
 
 ### 3. Data Ingestion
 
@@ -298,23 +309,33 @@ User Query
 
 ---
 
+## 🤖 Available Agents
+
+### 💬 Conversation Agent
+**When to use:** General health questions, greetings, casual chat
+
+### 📚 RAG Agent
+**When to use:** Specific medical knowledge questions with document retrieval from your knowledge base
+
+### 🌐 Web Search Agent
+**When to use:** Latest medical research, current health news, recent publications
+
+### 🧠 Brain Tumor Agent
+**When to use:** Analyzing brain MRI scans for tumor detection and segmentation
+
+### 🫁 Chest X-ray Agent
+**When to use:** Analyzing chest X-rays for COVID-19 and 18+ diseases (Atelectasis, Pneumonia, etc.)
+
+### 🩺 Skin Lesion Agent
+**When to use:** Analyzing skin conditions with benign/malignant classification
+
+---
+
 ## 📚 Documentation
 
-### Getting Started
-- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - File organization
-- [SETUP_GUIDE.md](SETUP_GUIDE.md) - Detailed setup
-- [DEMO_README.md](DEMO_README.md) - Demo system guide
-
-### Evaluation
-- [README_EVALUATION.md](README_EVALUATION.md) - Evaluation index
-- [EVALUATION_START_HERE.md](EVALUATION_START_HERE.md) - Quick start
-- [EVALUATION_QUICKREF.md](EVALUATION_QUICKREF.md) - Commands reference
-- [EVALUATION_COMPLETE_GUIDE.md](EVALUATION_COMPLETE_GUIDE.md) - Full tutorial
-
-### Technical
-- [ARCHITECTURE.txt](ARCHITECTURE.txt) - System architecture
-- [config.py](config.py) - Configuration code
-- [COMPARISON.md](COMPARISON.md) - Feature comparison
+- **[CHANGELOG.md](CHANGELOG.md)** - Complete history of changes and improvements
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Detailed setup and configuration instructions
+- **[docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)** - Complete file organization guide
 
 ---
 
