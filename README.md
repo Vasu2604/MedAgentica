@@ -339,23 +339,6 @@ User Query
 
 ---
 
-## 🔒 Security & Git
-
-### ⚠️ Never Commit:
-- `.env` - Your API keys!
-- `data/` - Large datasets
-- `evaluation_results/` - Generated outputs
-- `venv/` - Python environment
-
-### ✅ Safe to Commit:
-- `.env.example` - Template (no secrets)
-- All `.py` and `.md` files
-- `requirements.txt`
-- `.gitignore`
-
-**The `.gitignore` is already configured** - just don't force-add ignored files!
-
----
 
 ## 🧪 Testing & Validation
 
