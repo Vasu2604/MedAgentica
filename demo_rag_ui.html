@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic RAG System - Medical Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #6366f1;
+            --primary-hover: #5558e3;
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-sidebar: #2c3e50;
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --text-light: #a0aec0;
+            --border-color: #e2e8f0;
+            --hover-bg: #f7fafc;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .logo-subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 400;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            margin-top: 16px;
+        }
+
+        .new-chat-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .conversations-header {
+            padding: 20px 20px 12px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .conversations {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px;
+        }
+
+        .conversation-item {
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .conversation-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .conversation-item.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+        }
+
+        .conversation-item-text {
+            flex: 1;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main chat area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+        }
+
+        .chat-header {
+            padding: 20px 32px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+        }
+
+        .chat-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .clear-btn {
+            padding: 8px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: var(--hover-bg);
+            border-color: var(--text-light);
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            background: var(--bg-primary);
+        }
+
+        .messages-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .message {
+            margin-bottom: 24px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .assistant-avatar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .message-role {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .message-content {
+            padding: 16px 20px;
+            border-radius: 12px;
+            line-height: 1.6;
+            margin-left: 48px;
+        }
+
+        .user-message .message-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .assistant-message .message-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .message-actions {
+            margin-left: 48px;
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .action-btn:hover {
+            background: var(--hover-bg);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .message-metadata {
+            margin-left: 48px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .message-metadata.show {
+            display: block;
+        }
+
+        /* Input area */
+        .input-container {
+            padding: 20px 32px;
+            background: white;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .input-box {
+            width: 100%;
+            padding: 14px 60px 14px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            transition: all 0.2s;
+            font-family: inherit;
+            line-height: 1.5;
+            min-height: 52px;
+            max-height: 200px;
+        }
+
+        .input-box:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .send-btn:disabled {
+            background: var(--text-light);
+            cursor: not-allowed;
+            transform: translateY(-50%);
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            gap: 6px;
+            padding: 16px 20px;
+            margin-left: 48px;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 32px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .empty-state-subtitle {
+            font-size: 15px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-light);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                transition: left 0.3s;
+                z-index: 1000;
+                height: 100vh;
+            }
+
+            .sidebar.show {
+                left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🏥 MedRAG A.I+</div>
+                <div class="logo-subtitle">Agentic Medical Assistant</div>
+                <button class="new-chat-btn" onclick="createNewChat()">
+                    <span>✚</span> New chat
+                </button>
+            </div>
+            
+            <div class="conversations-header">Your conversations</div>
+            
+            <div class="conversations" id="conversations">
+                <!-- Conversations will be loaded here -->
+            </div>
+            
+            <div class="sidebar-footer">
+                <button class="settings-btn" onclick="clearAllConversations()">
+                    <span>🗑️</span> Clear All
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-header">
+                <div class="chat-title">Agentic RAG System</div>
+                <button class="clear-btn" onclick="clearAllConversations()">Clear conversations</button>
+            </div>
+
+            <div class="messages-container" id="messages-container">
+                <div class="messages-wrapper" id="messages">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💬</div>
+                        <div class="empty-state-title">Welcome to MedRAG A.I+</div>
+                        <div class="empty-state-subtitle">
+                            Ask me anything about medical topics. I use advanced multi-agent reasoning<br>
+                            to provide accurate, well-researched answers.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        class="input-box" 
+                        id="message-input" 
+                        placeholder="What's in your mind?" 
+                        rows="1"
+                        onkeydown="handleKeyPress(event)"
+                        oninput="autoResize(this)"
+                    ></textarea>
+                    <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                        <span>➤</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentConversationId = null;
+        let isLoading = false;
+
+        // Auto-resize textarea
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }
+
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Create new chat
+        async function createNewChat() {
+            try {
+                const response = await fetch('/api/conversations/new', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                currentConversationId = data.conversation_id;
+                
+                // Clear messages
+                document.getElementById('messages').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💬</div>
+                        <div class="empty-state-title">New Conversation</div>
+                        <div class="empty-state-subtitle">
+                            Ask me anything about medical topics.
+                        </div>
+                    </div>
+                `;
+                
+                // Reload conversations list
+                loadConversations();
+            } catch (error) {
+                console.error('Error creating new chat:', error);
+            }
+        }
+
+        // Load conversations
+        async function loadConversations() {
+            try {
+                const response = await fetch('/api/conversations');
+                const data = await response.json();
+                
+                const conversationsDiv = document.getElementById('conversations');
+                conversationsDiv.innerHTML = '';
+                
+                data.conversations.forEach(conv => {
+                    const item = document.createElement('div');
+                    item.className = 'conversation-item';
+                    if (conv.id === currentConversationId) {
+                        item.classList.add('active');
+                    }
+                    item.innerHTML = `
+                        <span>💬</span>
+                        <span class="conversation-item-text">${conv.title}</span>
+                    `;
+                    item.onclick = () => loadConversation(conv.id);
+                    conversationsDiv.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+            }
+        }
+
+        // Load specific conversation
+        async function loadConversation(conversationId) {
+            try {
+                const response = await fetch(`/api/conversations/${conversationId}`);
+                const data = await response.json();
+                
+                currentConversationId = conversationId;
+                
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = '';
+                
+                data.messages.forEach(msg => {
+                    addMessageToUI(msg);
+                });
+                
+                loadConversations();
+                scrollToBottom();
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+            }
+        }
+
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message || isLoading) return;
+            
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Add user message to UI
+            addMessageToUI({
+                role: 'user',
+                content: message
+            });
+            
+            // Show loading
+            showLoading();
+            isLoading = true;
+            document.getElementById('send-btn').disabled = true;
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        conversation_id: currentConversationId,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                currentConversationId = data.conversation_id;
+                
+                // Remove loading
+                hideLoading();
+                
+                // Add assistant message
+                addMessageToUI(data.message);
+                
+                // Reload conversations list
+                loadConversations();
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                hideLoading();
+                addMessageToUI({
+                    role: 'assistant',
+                    content: 'Sorry, I encountered an error. Please try again.',
+                    error: true
+                });
+            } finally {
+                isLoading = false;
+                document.getElementById('send-btn').disabled = false;
+            }
+        }
+
+        // Add message to UI
+        function addMessageToUI(msg) {
+            const messagesDiv = document.getElementById('messages');
+            
+            // Remove empty state
+            const emptyState = messagesDiv.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${msg.role}-message`;
+            
+            const avatarClass = msg.role === 'user' ? 'user-avatar' : 'assistant-avatar';
+            const avatarText = msg.role === 'user' ? 'U' : 'A';
+            const roleName = msg.role === 'user' ? 'You' : 'Assistant';
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="avatar ${avatarClass}">${avatarText}</div>
+                    <div class="message-role">${roleName}</div>
+                </div>
+                <div class="message-content">${formatMessage(msg.content)}</div>
+            `;
+            
+            // Add actions for assistant messages
+            if (msg.role === 'assistant') {
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'message-actions';
+                actionsDiv.innerHTML = `
+                    <button class="action-btn" onclick="copyMessage(this)">📋 Copy</button>
+                    <button class="action-btn" onclick="regenerateResponse()">🔄 Regenerate</button>
+                    ${msg.metadata ? '<button class="action-btn" onclick="toggleMetadata(this)">ℹ️ Info</button>' : ''}
+                `;
+                messageDiv.appendChild(actionsDiv);
+                
+                // Add metadata if available
+                if (msg.metadata) {
+                    const metadataDiv = document.createElement('div');
+                    metadataDiv.className = 'message-metadata';
+                    metadataDiv.innerHTML = `
+                        <strong>Metadata:</strong><br>
+                        Confidence: ${(msg.metadata.confidence * 100).toFixed(1)}% | 
+                        Documents: ${msg.metadata.doc_count} | 
+                        Type: ${msg.metadata.query_type} | 
+                        Complexity: ${msg.metadata.complexity}
+                    `;
+                    messageDiv.appendChild(metadataDiv);
+                }
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // Format message content (simple markdown support)
+        function formatMessage(content) {
+            return content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/`(.*?)`/g, '<code>$1</code>');
+        }
+
+        // Show loading indicator
+        function showLoading() {
+            const messagesDiv = document.getElementById('messages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant-message';
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="avatar assistant-avatar">A</div>
+                    <div class="message-role">Assistant</div>
+                </div>
+                <div class="loading">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                </div>
+            `;
+            messagesDiv.appendChild(loadingDiv);
+            scrollToBottom();
+        }
+
+        // Hide loading indicator
+        function hideLoading() {
+            const loading = document.getElementById('loading-indicator');
+            if (loading) {
+                loading.remove();
+            }
+        }
+
+        // Copy message
+        function copyMessage(btn) {
+            const messageContent = btn.closest('.message').querySelector('.message-content');
+            const text = messageContent.innerText;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                btn.innerHTML = '✓ Copied';
+                setTimeout(() => {
+                    btn.innerHTML = '📋 Copy';
+                }, 2000);
+            });
+        }
+
+        // Toggle metadata
+        function toggleMetadata(btn) {
+            const metadata = btn.closest('.message').querySelector('.message-metadata');
+            metadata.classList.toggle('show');
+        }
+
+        // Regenerate response
+        async function regenerateResponse() {
+            if (!currentConversationId || isLoading) return;
+            
+            // Remove last assistant message
+            const messages = document.querySelectorAll('.assistant-message');
+            if (messages.length > 0) {
+                messages[messages.length - 1].remove();
+            }
+            
+            showLoading();
+            isLoading = true;
+            
+            try {
+                const response = await fetch(`/api/regenerate?conversation_id=${currentConversationId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                hideLoading();
+                addMessageToUI(data.message);
+                
+            } catch (error) {
+                console.error('Error regenerating response:', error);
+                hideLoading();
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        // Clear all conversations
+        async function clearAllConversations() {
+            if (!confirm('Are you sure you want to clear all conversations?')) {
+                return;
+            }
+            
+            try {
+                await fetch('/api/conversations', {
+                    method: 'DELETE'
+                });
+                
+                currentConversationId = null;
+                document.getElementById('messages').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💬</div>
+                        <div class="empty-state-title">All conversations cleared</div>
+                        <div class="empty-state-subtitle">
+                            Start a new conversation to begin.
+                        </div>
+                    </div>
+                `;
+                
+                loadConversations();
+            } catch (error) {
+                console.error('Error clearing conversations:', error);
+            }
+        }
+
+        // Scroll to bottom
+        function scrollToBottom() {
+            const container = document.getElementById('messages-container');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConversations();
+        });
+    </script>
+</body>
+</html>
+
