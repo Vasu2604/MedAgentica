@@ -1,4 +1,4 @@
-!from .image_classifier import ImageClassifier
+from .image_classifier import ImageClassifier
 from .chest_xray_agent.covid_chest_xray_inference import ChestXRayClassification
 from .chest_xray_agent.medrax_wrapper import MedRAXChestXRayAgent
 from .brain_tumor_agent.brain_tumor_inference import BrainTumorAgent

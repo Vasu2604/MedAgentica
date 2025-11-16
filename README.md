@@ -163,26 +163,6 @@ uvicorn app:app --reload
 - 🖼️ Full-screen image modal viewer
 - ⌨️ Keyboard shortcuts and accessibility features
 
-### 2b. Agentic RAG Demo Web UI (NEW!)
-
-**Modern ChatGPT-style interface for Agentic RAG system**
-
-```bash
-python demo_agentic_rag_web.py
-```
-
-**Access**: http://localhost:8001
-
-**Features**:
-- 💬 Clean, modern chat interface
-- 📂 Conversation history in sidebar
-- 📋 Copy, regenerate, and view metadata
-- ℹ️ See query analysis, confidence scores, and sources
-- 🎨 Professional design with smooth animations
-- 📱 Responsive (works on mobile & desktop)
-
-👉 See [DEMO_WEB_UI_GUIDE.md](DEMO_WEB_UI_GUIDE.md) for complete guide
-
 ### 3. Data Ingestion
 
 ```bash
