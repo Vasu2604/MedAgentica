@@ -153,10 +153,14 @@ class LocalGuardrails:
             return True, user_input
 
         except Exception as e:
-            # If LLM fails, default to allowing medical content
-            if has_medical_context:
-                return True, user_input
-            return False, AIMessage(content=f"Request blocked due to safety concerns.")
+            # Log the actual error for debugging
+            print(f"⚠️ [Guardrails] LLM check failed with error: {e}")
+            print(f"   Input was: '{user_input[:100]}...'")
+            
+            # If LLM fails, default to allowing the content
+            # (Better to allow legitimate medical queries than block everything)
+            print(f"✅ [Guardrails] Allowing input despite LLM check failure (fail-open for medical assistant)")
+            return True, user_input
     
     def check_output(self, output: str, user_input: str = "") -> str:
         """

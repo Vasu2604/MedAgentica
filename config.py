@@ -23,12 +23,30 @@ import chromadb
 # Load environment variables from .env file
 load_dotenv()
 
-def create_llm(temperature=0.7):
+def create_llm(temperature=0.7, use_local=False):
     """
     Create LLM instance based on configuration.
-    Supports Groq, OpenRouter.ai, and OpenAI.
+    Supports Ollama (local), Groq, OpenRouter.ai, and OpenAI.
+    
+    Args:
+        temperature: Temperature for generation
+        use_local: If True, use local Ollama model (MedGemma)
     """
-    # Check if Groq is configured (highest priority)
+    # Check if local Ollama should be used (for most agents)
+    use_ollama = os.getenv("USE_OLLAMA", "false").lower() == "true"
+    ollama_model = os.getenv("OLLAMA_MODEL", "alibayram/medgemma:4b")
+    
+    if use_local or use_ollama:
+        # Use local Ollama (MedGemma)
+        print(f"🏠 Using local Ollama model: {ollama_model}")
+        return ChatOpenAI(
+            model=ollama_model,
+            base_url="http://localhost:11434/v1",
+            api_key="ollama",  # Ollama doesn't need a real API key
+            temperature=temperature
+        )
+    
+    # Check if Groq is configured (highest priority for API calls)
     groq_api_key = os.getenv("GROQ_API_KEY") or os.getenv("groq_api_key")
     groq_model = os.getenv("GROQ_MODEL") or os.getenv("groq_model") or "llama-3.3-70b-versatile"
     
@@ -79,6 +97,7 @@ def create_llm(temperature=0.7):
     raise ValueError(
         "\n\n❌ No LLM API keys found!\n\n"
         "Please set one of the following in your .env file:\n"
+        "  • USE_OLLAMA=true (use local MedGemma)\n"
         "  • GROQ_API_KEY (fast & free!)\n"
         "  • OPENROUTER_API_KEY\n"
         "  • OPENAI_API_KEY\n"
@@ -190,15 +209,18 @@ def create_vectorstore(embedding_model, collection_name="medical_assistance_rag"
 
 class AgentDecisionConfig:
     def __init__(self):
-        self.llm = create_llm(temperature=0.1)  # Deterministic
+        # Use Groq API for fast routing (10x faster than local)
+        self.llm = create_llm(temperature=0.1, use_local=False)  # Deterministic, FAST
 
 class ConversationConfig:
     def __init__(self):
-        self.llm = create_llm(temperature=0.7)  # Creative but factual
+        # Use Groq API for fast conversation (10x faster than local)
+        self.llm = create_llm(temperature=0.7, use_local=False)  # Creative but factual, FAST
 
 class WebSearchConfig:
     def __init__(self):
-        self.llm = create_llm(temperature=0.3)  # Slightly creative but factual
+        # Use OpenRouter for web search (needs good summarization)
+        self.llm = create_llm(temperature=0.3, use_local=False)  # Use API (OpenRouter/Groq)
         self.context_limit = 20     # include last 20 messsages (10 Q&A pairs) in history
 
 class RAGConfig:
@@ -228,10 +250,11 @@ class RAGConfig:
         self.embedding_model = create_embedding_model()
         
         # Initialize LLM models using the new helper function
-        self.llm = create_llm(temperature=0.3)  # Slightly creative but factual
-        self.summarizer_model = create_llm(temperature=0.5)  # Slightly creative but factual
-        self.chunker_model = create_llm(temperature=0.0)  # factual
-        self.response_generator_model = create_llm(temperature=0.3)  # Slightly creative but factual
+        # RAG uses Groq API (for better retrieval quality)
+        self.llm = create_llm(temperature=0.3, use_local=False)  # Use API (Groq)
+        self.summarizer_model = create_llm(temperature=0.5, use_local=False)  # Use API (Groq)
+        self.chunker_model = create_llm(temperature=0.0, use_local=False)  # Use API (Groq)
+        self.response_generator_model = create_llm(temperature=0.3, use_local=False)  # Use API (Groq)
         self.top_k = 5
         self.vector_search_type = 'similarity'  # or 'mmr'
 
@@ -268,7 +291,8 @@ class MedicalCVConfig:
         self.chest_xray_model_path = os.path.join(project_root, "agents/image_analysis_agent/chest_xray_agent/models/covid_chest_xray_model.pth")
         self.skin_lesion_model_path = os.path.join(project_root, "agents/image_analysis_agent/skin_lesion_agent/models/checkpointN25_.pth.tar")
         self.skin_lesion_segmentation_output_path = os.path.join(project_root, "uploads/skin_lesion_output/overlayed_plot.png")
-        self.llm = create_llm(temperature=0.1)  # Keep deterministic for classification tasks
+        # Use local MedGemma for medical image analysis (deterministic, private)
+        self.llm = create_llm(temperature=0.1, use_local=True)  # Keep deterministic for classification tasks
 
 class SpeechConfig:
     def __init__(self):
@@ -291,7 +315,7 @@ class ValidationConfig:
 class APIConfig:
     def __init__(self):
         self.host = "0.0.0.0"
-        self.port = 8000
+        self.port = 8001
         self.debug = True
         self.rate_limit = 10
         self.max_image_upload_size = 5  # max upload size in MB

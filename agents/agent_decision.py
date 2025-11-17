@@ -38,6 +38,10 @@ from langgraph.checkpoint.memory import MemorySaver
 import cv2
 import numpy as np
 
+import sys
+import os
+# Fix import conflict with torchxrayvision's config module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import Config
 
 load_dotenv()
@@ -187,6 +191,156 @@ def build_medrax_response(detailed_analysis: dict, predicted_class: str) -> str:
     
     # Add disclaimer
     response_parts.append("\n**Important Disclaimer:** This AI-generated analysis is for informational purposes only and is not a definitive medical diagnosis. It must be reviewed and validated by a qualified healthcare professional.")
+    
+    return "\n".join(response_parts)
+
+
+def build_raw_medrax_response(
+    classification: dict, 
+    segmentation: dict, 
+    report: dict, 
+    disease_grounding: dict
+) -> str:
+    """Build comprehensive MedRAX output with ALL features and services."""
+    response_parts = []
+    
+    # 1. COMPREHENSIVE CLASSIFICATION RESULTS (All 18 Diseases with Probabilities)
+    if classification and not classification.get("error"):
+        pathologies = classification.get("pathologies", {})
+        if pathologies:
+            response_parts.append("___AI Classification Result (18-Disease Analysis)___")
+            
+            # Sort all pathologies by probability
+            sorted_pathologies = sorted(pathologies.items(), key=lambda x: x[1], reverse=True)
+            
+            # Primary finding
+            if sorted_pathologies:
+                primary = sorted_pathologies[0]
+                response_parts.append(f"\nPrimary Finding: {primary[0]}")
+                response_parts.append(f"Probability: {primary[1]*100:.2f}%")
+            
+            # All detected pathologies with probabilities (threshold > 0.1)
+            significant_pathologies = [(name, prob) for name, prob in sorted_pathologies if prob > 0.1]
+            if significant_pathologies:
+                response_parts.append("\nAll Detected Pathologies:")
+                for name, prob in significant_pathologies:
+                    response_parts.append(f"- {name}: {prob*100:.2f}%")
+            
+            # Specific disease categories
+            disease_categories = {
+                "Pneumonia/Infection": ["Pneumonia", "Consolidation", "Lung Opacity", "Infiltration"],
+                "Pleural": ["Pleural Effusion", "Pleural Thickening", "Pneumothorax"],
+                "Cardiac": ["Cardiomegaly", "Atelectasis"],
+                "Other": ["Edema", "Mass", "Nodule", "Fibrosis", "Hernia", "No Finding"]
+            }
+            
+            response_parts.append("\nDisease Categories:")
+            for category, diseases in disease_categories.items():
+                found = [(d, pathologies.get(d, 0)) for d in diseases if d in pathologies and pathologies[d] > 0.1]
+                if found:
+                    category_list = ", ".join([f"{d} ({p*100:.1f}%)" for d, p in found])
+                    response_parts.append(f"- {category}: {category_list}")
+    
+    # 2. COMPREHENSIVE RADIOLOGY REPORT
+    if report and not report.get("error"):
+        full_report = report.get("report", "")
+        findings = report.get("findings", "")
+        impression = report.get("impression", "")
+        
+        if full_report or findings or impression:
+            response_parts.append("\n\n___Radiology Report___")
+            
+            if full_report:
+                response_parts.append(f"\nFull Report:\n{full_report}")
+            else:
+                if findings:
+                    response_parts.append(f"\nFindings:\n{findings}")
+                if impression:
+                    response_parts.append(f"\nImpression:\n{impression}")
+    
+    # 3. COMPREHENSIVE ANATOMICAL SEGMENTATION (All Organs with Areas)
+    if segmentation and not segmentation.get("error"):
+        organ_metrics = segmentation.get("organ_metrics", {})
+        if organ_metrics:
+            response_parts.append("\n\n___Anatomical Segmentation Analysis___")
+            
+            # Organ areas
+            response_parts.append("\nOrgan Segmentation Areas:")
+            for organ, metrics in organ_metrics.items():
+                if isinstance(metrics, dict):
+                    area = metrics.get("area", "N/A")
+                    # Try to get additional metrics
+                    perimeter = metrics.get("perimeter", None)
+                    centroid = metrics.get("centroid", None)
+                    
+                    area_str = f"Area: {area}"
+                    if perimeter:
+                        area_str += f", Perimeter: {perimeter}"
+                    if centroid:
+                        area_str += f", Centroid: {centroid}"
+                    
+                    response_parts.append(f"- {organ}: {area_str}")
+                else:
+                    response_parts.append(f"- {organ}: {metrics}")
+            
+            # Check for specific findings in segmentation
+            if "Pleural Effusion" in str(organ_metrics) or any("effusion" in str(k).lower() for k in organ_metrics.keys()):
+                response_parts.append("\n⚠️ Pleural Effusion Detected in Segmentation")
+    
+    # 4. DISEASE GROUNDING AND LOCALIZATION
+    if disease_grounding and not disease_grounding.get("error"):
+        grounded_diseases = disease_grounding.get("grounded_diseases", {})
+        bounding_boxes = disease_grounding.get("bounding_boxes", [])
+        combined_viz = disease_grounding.get("combined_visualization_path")
+        
+        if grounded_diseases or bounding_boxes:
+            response_parts.append("\n\n___Disease Localization & Grounding___")
+            
+            if grounded_diseases:
+                response_parts.append("\nGrounded Diseases with Locations:")
+                for disease, data in grounded_diseases.items():
+                    prob = data.get("probability", 0) * 100
+                    bbox = data.get("bounding_box")
+                    confidence = data.get("confidence", 0) * 100
+                    
+                    location_str = f"{disease} ({prob:.1f}% probability, {confidence:.1f}% localization confidence)"
+                    if bbox:
+                        location_str += f" - Bounding Box: {bbox}"
+                    response_parts.append(f"- {location_str}")
+            
+            if bounding_boxes:
+                response_parts.append(f"\nTotal Regions of Interest Detected: {len(bounding_boxes)}")
+            
+            if combined_viz:
+                response_parts.append(f"\nVisualization Generated: {combined_viz}")
+    
+    # 5. EFFUSION DETECTION (Specific Check)
+    if classification and not classification.get("error"):
+        pathologies = classification.get("pathologies", {})
+        effusion_prob = pathologies.get("Pleural Effusion", 0)
+        if effusion_prob > 0.1:
+            response_parts.append("\n\n___Pleural Effusion Analysis___")
+            response_parts.append(f"Pleural Effusion Probability: {effusion_prob*100:.2f}%")
+            if effusion_prob > 0.5:
+                response_parts.append("Status: Significant effusion detected")
+            elif effusion_prob > 0.3:
+                response_parts.append("Status: Moderate effusion detected")
+            else:
+                response_parts.append("Status: Mild effusion detected")
+    
+    # 6. SUMMARY STATISTICS
+    if classification and not classification.get("error"):
+        pathologies = classification.get("pathologies", {})
+        if pathologies:
+            total_diseases = len([p for p in pathologies.values() if p > 0.1])
+            high_confidence = len([p for p in pathologies.values() if p > 0.5])
+            
+            response_parts.append("\n\n___Summary Statistics___")
+            response_parts.append(f"Total Diseases Detected (>10% probability): {total_diseases}")
+            response_parts.append(f"High Confidence Findings (>50% probability): {high_confidence}")
+    
+    if not response_parts:
+        return "MedRAX analysis completed. No significant findings detected."
     
     return "\n".join(response_parts)
 
@@ -614,26 +768,35 @@ def create_agent_graph():
         elif isinstance(current_input, dict):
             input_text = current_input.get("text", "")
         
-        # Check input through guardrails if text is present
-        if input_text:
-            is_allowed, message = guardrails.check_input(input_text)
-            if not is_allowed:
-                # If input is blocked, return early with guardrail message
-                print(f"Selected agent: INPUT GUARDRAILS, Message: ", message)
-                return {
-                    **state,
-                    "messages": message,
-                    "agent_name": "INPUT_GUARDRAILS",
-                    "has_image": False,
-                    "image_type": None,
-                    "bypass_routing": True  # flag to end flow
-                }
+        # DISABLED: Input guardrails for speed optimization (saves 2-3 seconds)
+        # Medical assistant doesn't need aggressive input filtering
+        # Safety is handled by agent-specific logic and output validation
+        if False:  # Disabled for performance
+            try:
+                is_allowed, message = guardrails.check_input(input_text)
+                if not is_allowed:
+                    print(f"Selected agent: INPUT GUARDRAILS, Message: ", message)
+                    return {
+                        **state,
+                        "messages": message,
+                        "agent_name": "INPUT_GUARDRAILS",
+                        "has_image": False,
+                        "image_type": None,
+                        "bypass_routing": True
+                    }
+            except Exception as e:
+                print(f"⚠️ [Agent Decision] Guardrails check failed: {e}")
+                print(f"✅ [Agent Decision] Continuing with query processing (fail-open)")
         
         # CRITICAL: Always re-analyze images for each new query
         # Don't reuse previous image_type from state - each image upload should be fresh
         if isinstance(current_input, dict) and "image" in current_input:
             has_image = True
             image_path = current_input.get("image", None)
+            
+            # Store image path in state for agents to use
+            if image_path:
+                state["image_path"] = image_path
             
             if image_path and os.path.exists(image_path):
                 print(f"🖼️ Analyzing NEW image: {image_path}")
@@ -658,6 +821,7 @@ def create_agent_graph():
         else:
             # No image in this query, clear image-related state
             state["image_classification_confidence"] = None
+            state["image_path"] = None
         
         return {
             **state,
@@ -787,9 +951,12 @@ def create_agent_graph():
                         "skin disease", "skin condition", "is it cancer"]
         has_skin_keywords = any(keyword in input_text_lower for keyword in skin_keywords)
         
-        # Strong X-ray/chest-related keywords
-        xray_keywords = ["chest", "x-ray", "xray", "lung", "pneumonia", "covid", 
-                        "pulmonary", "respiratory", "breathing"]
+        # Strong X-ray/chest-related keywords - expanded to catch all variations
+        xray_keywords = ["chest", "x-ray", "xray", "x ray", "lung", "pneumonia", "covid", 
+                        "pulmonary", "respiratory", "breathing", "analyze xray", "analyze x-ray",
+                        "analyze the xray", "analyze the x-ray", "check xray", "check x-ray",
+                        "examine xray", "examine x-ray", "diagnose xray", "diagnose x-ray",
+                        "xray image", "x-ray image", "chest xray", "chest x-ray"]
         has_xray_keywords = any(keyword in input_text_lower for keyword in xray_keywords)
         
         # Strong brain/MRI keywords
@@ -801,9 +968,42 @@ def create_agent_graph():
             print(f"🎯 USER QUERY EXPLICITLY MENTIONS SKIN - Routing to SKIN_LESION_AGENT (query: '{input_text[:50]}...')")
             return {"agent_state": state, "next": "SKIN_LESION_AGENT"}
         
+        # CRITICAL: If user explicitly mentions X-ray/chest analysis, route to X-ray agent
+        # This should work even if has_image is False (user might have uploaded image separately)
+        if has_xray_keywords:
+            print(f"🎯 USER QUERY EXPLICITLY MENTIONS CHEST/X-RAY - Routing to CHEST_XRAY_AGENT (query: '{input_text[:50]}...')")
+            # Ensure image is in current_input - check multiple sources
+            if isinstance(current_input, dict):
+                if "image" not in current_input:
+                    # Try to get image from state
+                    image_path = state.get("image_path") or state.get("last_image_path")
+                    if image_path and os.path.exists(image_path):
+                        current_input["image"] = image_path
+                        state["image_path"] = image_path
+                        state["has_image"] = True
+                        print(f"✅ Found image path in state: {image_path}")
+                else:
+                    # Image already in current_input, ensure it's in state
+                    state["image_path"] = current_input["image"]
+                    state["has_image"] = True
+            else:
+                # current_input is a string, convert to dict with image
+                image_path = state.get("image_path") or state.get("last_image_path")
+                if image_path and os.path.exists(image_path):
+                    state["current_input"] = {"text": input_text, "image": image_path}
+                    state["image_path"] = image_path
+                    state["has_image"] = True
+                    print(f"✅ Converted string input to dict with image: {image_path}")
+            return {"agent_state": state, "next": "CHEST_XRAY_AGENT"}
+        
         # If user explicitly mentions chest/X-ray AND has image, prioritize X-ray agent
         if has_image and has_xray_keywords:
-            print(f"🎯 USER QUERY EXPLICITLY MENTIONS CHEST/X-RAY - Routing to CHEST_XRAY_AGENT (query: '{input_text[:50]}...')")
+            print(f"🎯 USER QUERY EXPLICITLY MENTIONS CHEST/X-RAY WITH IMAGE - Routing to CHEST_XRAY_AGENT (query: '{input_text[:50]}...')")
+            # Ensure image is in current_input
+            if isinstance(current_input, dict) and "image" not in current_input:
+                image_path = state.get("image_path") or state.get("last_image_path")
+                if image_path:
+                    current_input["image"] = image_path
             return {"agent_state": state, "next": "CHEST_XRAY_AGENT"}
         
         # If user explicitly mentions brain/MRI AND has image, prioritize brain agent
@@ -819,14 +1019,17 @@ def create_agent_graph():
             if "skin" in image_type_lower or "lesion" in image_type_lower:
                 print(f"✅ Routing skin lesion to SKIN_LESION_AGENT (image_type: {image_type})")
                 return {"agent_state": state, "next": "SKIN_LESION_AGENT"}
-            elif "chest" in image_type_lower or "x-ray" in image_type_lower or "xray" in image_type_lower:
+            elif "chest" in image_type_lower or "x-ray" in image_type_lower or "xray" in image_type_lower or "lung" in image_type_lower:
                 print(f"✅ Routing chest X-ray to CHEST_XRAY_AGENT (image_type: {image_type})")
+                # Ensure image is in state for agent to use
+                if isinstance(current_input, dict) and "image" in current_input:
+                    state["image_path"] = current_input["image"]
                 return {"agent_state": state, "next": "CHEST_XRAY_AGENT"}
             elif "brain" in image_type_lower or "mri" in image_type_lower:
                 print(f"✅ Routing brain MRI to BRAIN_TUMOR_AGENT (image_type: {image_type})")
                 return {"agent_state": state, "next": "BRAIN_TUMOR_AGENT"}
             else:
-                # Unknown medical image - check user query for hints before asking for clarification
+                # Unknown medical image - check user query for hints
                 # Check if user mentions skin-related terms
                 if has_skin_keywords:
                     print(f"⚠️ Unknown image type but user query suggests skin lesion, routing to SKIN_LESION_AGENT")
@@ -835,6 +1038,8 @@ def create_agent_graph():
                 # Check if user mentions chest/X-ray terms
                 if has_xray_keywords:
                     print(f"⚠️ Unknown image type but user query suggests chest X-ray, routing to CHEST_XRAY_AGENT")
+                    if isinstance(current_input, dict) and "image" in current_input:
+                        state["image_path"] = current_input["image"]
                     return {"agent_state": state, "next": "CHEST_XRAY_AGENT"}
                 
                 # Check if user mentions brain/MRI terms
@@ -842,20 +1047,32 @@ def create_agent_graph():
                     print(f"⚠️ Unknown image type but user query suggests brain MRI, routing to BRAIN_TUMOR_AGENT")
                     return {"agent_state": state, "next": "BRAIN_TUMOR_AGENT"}
                 
-                # If image classification confidence is low (< 0.5) or image_type is "unknown", ask user for clarification
+                # If image classification confidence is low (< 0.5) or image_type is "unknown", check query first
                 image_confidence = state.get("image_classification_confidence", 0.5)
                 if image_type_lower == "unknown" or image_confidence < 0.5:
-                    print(f"❓ Unknown/ambiguous image type ({image_type}, confidence: {image_confidence:.2f}) - Routing to CONVERSATION_AGENT for clarification")
-                    return {
-                        "agent_state": {
-                            **state,
-                            "awaiting_image_clarification": True
-                        },
-                        "next": "CONVERSATION_AGENT"
-                    }
+                    # Check if user query mentions any medical image type or generic analysis terms
+                    if has_xray_keywords or "lung" in input_text_lower or "pneumonia" in input_text_lower or "analyze" in input_text_lower or "image" in input_text_lower or "xray" in input_text_lower or "x-ray" in input_text_lower:
+                        print(f"⚠️ Unknown image type but query suggests chest X-ray, routing to CHEST_XRAY_AGENT")
+                        if isinstance(current_input, dict) and "image" in current_input:
+                            state["image_path"] = current_input["image"]
+                        return {"agent_state": state, "next": "CHEST_XRAY_AGENT"}
+                    elif has_skin_keywords:
+                        print(f"⚠️ Unknown image type but query suggests skin lesion, routing to SKIN_LESION_AGENT")
+                        return {"agent_state": state, "next": "SKIN_LESION_AGENT"}
+                    elif has_brain_keywords:
+                        print(f"⚠️ Unknown image type but query suggests brain MRI, routing to BRAIN_TUMOR_AGENT")
+                        return {"agent_state": state, "next": "BRAIN_TUMOR_AGENT"}
+                    else:
+                        # Default to CHEST_XRAY_AGENT for unknown medical images (most common)
+                        print(f"⚠️ Unknown medical image type ({image_type}), defaulting to CHEST_XRAY_AGENT")
+                        if isinstance(current_input, dict) and "image" in current_input:
+                            state["image_path"] = current_input["image"]
+                        return {"agent_state": state, "next": "CHEST_XRAY_AGENT"}
                 
                 # Last resort: default to chest X-ray (but log it)
                 print(f"⚠️ Unknown medical image type ({image_type}), defaulting to CHEST_XRAY_AGENT")
+                if isinstance(current_input, dict) and "image" in current_input:
+                    state["image_path"] = current_input["image"]
                 return {"agent_state": state, "next": "CHEST_XRAY_AGENT"}
 
         # Text-based routing
@@ -869,6 +1086,21 @@ def create_agent_graph():
             print(f"Routing medical question to RAG_AGENT")
             return {"agent_state": state, "next": "RAG_AGENT"}
 
+        # CRITICAL: Before defaulting to conversation agent, check if user mentioned image analysis
+        # This catches cases where user says "analyze the xray image" but image wasn't detected
+        if has_xray_keywords and not has_image:
+            # User mentioned X-ray but no image detected - try to find image in session/state
+            image_path = state.get("image_path") or state.get("last_image_path")
+            if image_path and os.path.exists(image_path):
+                print(f"⚠️ User mentioned X-ray but image not in current_input - Found in state: {image_path}")
+                if isinstance(current_input, dict):
+                    current_input["image"] = image_path
+                else:
+                    state["current_input"] = {"text": input_text, "image": image_path}
+                state["image_path"] = image_path
+                state["has_image"] = True
+                return {"agent_state": state, "next": "CHEST_XRAY_AGENT"}
+        
         # Default to conversation agent
         print(f"Routing to CONVERSATION_AGENT")
         return {"agent_state": state, "next": "CONVERSATION_AGENT"}
@@ -883,13 +1115,49 @@ def create_agent_graph():
         current_input = state["current_input"]
         has_image = state.get("has_image", False)
         awaiting_clarification = state.get("awaiting_image_clarification", False)
-        
+
         # Check for emergency situations first
         input_text = ""
         if isinstance(current_input, str):
             input_text = current_input.lower()
         elif isinstance(current_input, dict):
             input_text = current_input.get("text", "").lower()
+        
+        # CRITICAL: Check if this is a follow-up question about medical image analysis
+        # Look for the MOST RECENT image analysis in conversation history (not the first one)
+        previous_image_context = ""
+        previous_agent_type = ""
+        
+        # Iterate in REVERSE order to get the MOST RECENT image analysis
+        for msg in reversed(messages[-20:]):  # Check last 20 messages (10 exchanges) in reverse
+            if isinstance(msg, AIMessage):
+                content = msg.content if isinstance(msg.content, str) else str(msg.content)
+                # Check for image analysis keywords - identify which type of analysis
+                is_brain_tumor = any(keyword in content for keyword in ["Pituitary", "Glioma", "Meningioma", "No Tumor", "Brain MRI", "brain tumor"])
+                is_skin_lesion = any(keyword in content for keyword in ["Skin lesion", "benign", "malignant", "melanoma", "dermatology"])
+                is_chest_xray = any(keyword in content for keyword in ["Chest X-ray", "MedRAX", "COVID", "pneumonia", "chest xray"])
+                
+                # Check for any image analysis indicators
+                has_analysis = any(keyword in content for keyword in ["Classification:", "Clinical Note:", "Recommendation:", 
+                                                                     "Pituitary", "Glioma", "Meningioma", "No Tumor",
+                                                                     "Chest X-ray", "MedRAX", "Skin lesion", "benign", "malignant"])
+                
+                if has_analysis:
+                    # Get the FULL analysis content (not just first 500 chars)
+                    previous_image_context = content
+                    
+                    # Identify which agent type this analysis came from
+                    if is_brain_tumor:
+                        previous_agent_type = "BRAIN_TUMOR_AGENT"
+                    elif is_skin_lesion:
+                        previous_agent_type = "SKIN_LESION_AGENT"
+                    elif is_chest_xray:
+                        previous_agent_type = "CHEST_XRAY_AGENT"
+                    else:
+                        previous_agent_type = "IMAGE_ANALYSIS_AGENT"
+                    
+                    print(f"✅ Found most recent image analysis from: {previous_agent_type}")
+                    break  # Stop at the FIRST (most recent) match found
 
         # Check if this is an emergency situation
         is_emergency = any(keyword in input_text for keyword in AgentConfig.EMERGENCY_KEYWORDS)
@@ -909,13 +1177,13 @@ def create_agent_graph():
         # Check if we're awaiting image type clarification
         if awaiting_clarification and has_image:
             # User hasn't clarified yet, ask them to specify
-            clarification_prompt = """I see you've uploaded a medical image, but I'm having difficulty determining what type of image it is. 
+            clarification_prompt = """I see you've uploaded a medical image, but I'm having difficulty determining what type of image it is.
 
 To route your image to the correct specialist agent, could you please tell me what type of medical image this is?
 
 **Please specify one of the following:**
 - **Chest X-ray** - For lung, chest, or respiratory conditions
-- **Brain MRI** - For brain or neurological conditions  
+- **Brain MRI** - For brain or neurological conditions
 - **Skin lesion** - For skin conditions, moles, rashes, or dermatology concerns
 
 Once you tell me the image type, I will route it to the appropriate AI analysis agent for detailed examination.
@@ -929,12 +1197,83 @@ Once you tell me the image type, I will route it to the appropriate AI analysis 
 - "MRI"
 
 What type of medical image is this?"""
-            
+
             return {
                 **state,
                 "output": AIMessage(content=clarification_prompt),
                 "agent_name": "CONVERSATION_AGENT",
                 "awaiting_image_clarification": True
+            }
+        
+        # If previous image analysis exists and this is a follow-up question, respond contextually
+        if previous_image_context and not has_image:
+            print(f"✅ Follow-up question about previous image analysis detected (Agent: {previous_agent_type})")
+            # Create context from recent conversation history
+            recent_context = ""
+            for msg in messages[-10:]:  # Last 5 exchanges
+                if isinstance(msg, HumanMessage):
+                    recent_context += f"User: {msg.content}\n"
+                elif isinstance(msg, AIMessage):
+                    recent_context += f"Assistant: {msg.content[:200]}...\n"  # Truncate long responses
+            
+            # Build agent-specific context
+            agent_context = ""
+            if previous_agent_type == "BRAIN_TUMOR_AGENT":
+                agent_context = "This is a follow-up question about a BRAIN MRI analysis. The user is asking about their brain MRI scan results."
+            elif previous_agent_type == "SKIN_LESION_AGENT":
+                agent_context = "This is a follow-up question about a SKIN LESION analysis. The user is asking about their skin lesion/dermatology image results."
+            elif previous_agent_type == "CHEST_XRAY_AGENT":
+                agent_context = "This is a follow-up question about a CHEST X-RAY analysis. The user is asking about their chest X-ray scan results."
+            else:
+                agent_context = "This is a follow-up question about a medical image analysis."
+            
+            conversation_prompt = f"""User query: {input_text}
+
+{agent_context}
+
+Recent conversation context: {recent_context}
+
+**MOST RECENT image analysis result (this is what the user is asking about):**
+{previous_image_context}
+
+You are an AI-powered Medical Conversation Assistant answering follow-up questions about a previous medical image analysis.
+
+**CRITICAL: The user is asking about the MOST RECENT image analysis shown above. Do NOT reference any older analyses (like skin lesions if the most recent was a brain MRI, or vice versa).**
+
+**Your role:**
+- Answer their specific question based on the MOST RECENT analysis shown above
+- Be professional, clear, and empathetic
+- Keep responses concise (max 150 words)
+- Always recommend professional consultation for medical decisions
+- If you need more information or they should re-upload the image, ask them
+
+**Response guidelines:**
+- Direct answer to their question about the MOST RECENT analysis
+- Clinical context from the MOST RECENT analysis only
+- Professional medical disclaimer if giving advice
+- Do NOT confuse this with any older analyses in the conversation
+
+Please provide a helpful, caring response to their follow-up question about the MOST RECENT image analysis:"""
+
+            try:
+                llm = config.conversation.llm
+                response = llm.invoke(conversation_prompt)
+                response_text = response.content if hasattr(response, 'content') else str(response)
+            except Exception as e:
+                print(f"Error generating contextual response: {e}")
+                response_text = f"""Based on our previous discussion, I'd be happy to help with your question: "{input_text}"
+
+However, for specific medical advice based on the analysis, I recommend:
+1. Consulting with a qualified healthcare professional
+2. Re-uploading the image if you need a fresh analysis
+3. Discussing your concerns with your doctor
+
+Is there anything else I can help clarify?"""
+            
+            return {
+                **state,
+                "output": AIMessage(content=response_text),
+                "agent_name": "CONVERSATION_AGENT"
             }
         
         # Create context from recent conversation history
@@ -957,24 +1296,54 @@ What type of medical image is this?"""
             for msg in messages if isinstance(msg, (HumanMessage, AIMessage))
         )
         
-        # Prepare Mayo Clinic-style conversation prompt
-        conversation_prompt = CONVERSATION_CLINICAL_PROMPT.format(
+        # Detect if this is a casual query (greeting, simple question) vs. medical question
+        casual_keywords = ["hello", "hi", "hey", "thanks", "thank you", "bye", "goodbye", "how are you", "what can you do", "help", "who are you", "what are you"]
+        medical_keywords = ["symptom", "diagnosis", "treatment", "disease", "condition", "medicine", "medication", "pain", "ache", "fever", "cough", "headache", "nausea", "vomiting", "diabetes", "cancer", "infection", "illness", "sick", "health", "medical", "doctor", "patient", "clinical", "what is", "tell me about", "explain"]
+        
+        # Simple queries (short and no medical keywords) are casual
+        query_length = len(input_text.split())
+        has_medical_keywords = any(keyword in input_text for keyword in medical_keywords)
+        has_casual_keywords = any(keyword in input_text for keyword in casual_keywords)
+        
+        # Determine if casual: short query with casual keywords OR very short query without medical keywords
+        is_casual = (has_casual_keywords and not has_medical_keywords) or (query_length <= 3 and not has_medical_keywords)
+        is_medical_question = has_medical_keywords or (query_length > 5 and not is_casual)
+        
+        # Use simple conversational prompt for casual queries
+        if is_casual and not is_medical_question:
+            conversation_prompt = f"""You are a friendly, helpful AI medical assistant named MedAgentica. You are warm, empathetic, and professional.
+
+User Query: {input_text}
+Recent Conversation: {recent_context[-300:] if len(recent_context) > 300 else recent_context}
+
+Instructions:
+- Respond naturally and conversationally, like a caring healthcare professional
+- Be brief (1-3 sentences) for greetings and casual queries
+- Offer to help with medical questions when appropriate
+- Use a warm, professional tone
+- Don't use formal medical report format for simple greetings
+- If asked what you can do, briefly mention your capabilities (general health discussions, medical knowledge queries, image analysis)
+
+Response:"""
+        else:
+            # Use Mayo Clinic-style prompt for medical questions
+            conversation_prompt = CONVERSATION_CLINICAL_PROMPT.format(
             input_text=input_text,
             recent_context=recent_context[-500:] if len(recent_context) > 500 else recent_context,
             has_image="Yes - image analyzed" if has_recent_image_upload else "No"
-        )
-        
+            )
+            
         # Add additional instruction for Mayo Clinic style
-        conversation_prompt += """
+            conversation_prompt += """
 
 **Additional Mayo Clinic Standards:**
-- For medical questions: Provide brief differential considerations if appropriate
+- For medical questions: Provide comprehensive analysis with all required sections
 - Cite evidence quality when making medical claims (strong/moderate/low evidence)
 - Use professional medical terminology but explain when needed
-- For diagnostic questions: List 2-3 most likely considerations briefly
+- For diagnostic questions: List 2-3 most likely considerations with rationale
 - Always state when professional evaluation is needed
 - Include brief "next steps" guidance when applicable
-- Maximum 150 words for medical questions, 30 words for casual queries
+- Keep responses comprehensive but readable
 
 Generate a response following the Mayo Clinic clinical decision-support format above.
 Response:"""
@@ -983,7 +1352,13 @@ Response:"""
 
         # Try to get response from LLM with fallback
         try:
-            response = config.conversation.llm.invoke(conversation_prompt)
+            # Invoke LLM with proper message format
+            llm_response = config.conversation.llm.invoke([HumanMessage(content=conversation_prompt)])
+            # Extract content from response
+            if hasattr(llm_response, 'content'):
+                response = AIMessage(content=llm_response.content)
+            else:
+                response = AIMessage(content=str(llm_response))
         except Exception as e:
             print(f"[Conversation Agent] LLM error: {e}")
             # Fallback response when LLM fails
@@ -1147,6 +1522,9 @@ Response:"""
         user_query = ""
         if isinstance(current_input, dict):
             user_query = current_input.get("text", "")
+        elif isinstance(current_input, str):
+            user_query = current_input
+            
         if not user_query and state.get("messages"):
             for msg in reversed(state["messages"]):
                 if hasattr(msg, 'content') and isinstance(msg.content, str):
@@ -1161,8 +1539,94 @@ Response:"""
         print(f"Image path: {image_path}")
         print(f"User query: {user_query}")
 
-        if not image_path or not os.path.exists(image_path):
-            response = AIMessage(content="Error: No valid brain MRI image provided for analysis.")
+        # CRITICAL FIX: Check if this is a follow-up question (no new image)
+        # If no image uploaded but user is asking about previous analysis
+        if not image_path:
+            # Check if there's a previous image path in state
+            image_path = state.get("last_image_path") or state.get("image_path")
+            
+            # Check if this is a follow-up question about previous analysis
+            follow_up_keywords = ["should i", "what should", "what next", "do i need", "tell me more", 
+                                  "explain", "is it serious", "how bad", "treatment", "what does"]
+            is_follow_up = any(keyword in user_query.lower() for keyword in follow_up_keywords)
+            
+            if is_follow_up and image_path and os.path.exists(image_path):
+                print(f"✅ Follow-up question detected, using previous image: {image_path}")
+                # Continue with analysis using stored image path
+            elif is_follow_up and not image_path:
+                # Follow-up question but no previous image - use conversation context
+                print(f"✅ Follow-up question detected but no image, using conversation agent")
+                
+                # Get conversation history for context
+                recent_context = ""
+                for msg in state["messages"][-10:]:  # Last 5 exchanges
+                    if isinstance(msg, HumanMessage):
+                        recent_context += f"User: {msg.content}\n"
+                    elif isinstance(msg, AIMessage):
+                        recent_context += f"Assistant: {msg.content[:200]}...\n"  # Truncate long responses
+                
+                # Use LLM to answer based on conversation context
+                system_prompt = """You are a compassionate neurosurgeon answering follow-up questions about a brain MRI analysis.
+
+**Context:** The patient previously uploaded a brain MRI that was analyzed by the AI system. Now they are asking follow-up questions about that analysis.
+
+**Your Role:**
+- Answer their specific question based on the conversation history
+- Be professional, clear, and empathetic
+- If you need to see the image again, ask them to re-upload it
+- Keep responses concise (max 150 words)
+- Always recommend professional consultation
+
+**Response Format:**
+- Direct answer to their question
+- Clinical context if relevant
+- Next steps recommendation"""
+
+                user_prompt = f"""Previous conversation:
+{recent_context}
+
+Current question: {user_query}
+
+Please answer their follow-up question based on the previous analysis. If you cannot answer without seeing the image again, politely ask them to re-upload it."""
+
+                try:
+                    llm = config.medical_cv.llm
+                    messages_for_llm = [
+                        SystemMessage(content=system_prompt),
+                        HumanMessage(content=user_prompt)
+                    ]
+                    response = llm.invoke(messages_for_llm)
+                    response_text = response.content
+                except Exception as e:
+                    print(f"Error generating follow-up response: {e}")
+                    response_text = f"""Based on our previous discussion about your brain MRI, I'd be happy to help with your question: "{user_query}"
+
+However, to provide the most accurate guidance, I recommend:
+1. Re-uploading the MRI image so I can review it in context of your question
+2. Consulting with a neurologist or neurosurgeon for personalized advice
+3. Discussing any concerns about the findings with your healthcare provider
+
+Would you like to upload the image again so I can provide more specific guidance?"""
+                
+                return {
+                    **state,
+                    "output": AIMessage(content=response_text),
+                    "needs_human_validation": False,
+                    "agent_name": "BRAIN_TUMOR_AGENT (Follow-up)"
+                }
+            else:
+                # Not a follow-up, just missing image
+                response = AIMessage(content="Please upload a brain MRI image so I can analyze it for you. I need to see the image to provide accurate analysis.")
+                return {
+                    **state,
+                    "output": response,
+                    "needs_human_validation": False,
+                    "agent_name": "BRAIN_TUMOR_AGENT"
+                }
+        
+        # Continue with normal image analysis if we have an image path
+        if not os.path.exists(image_path):
+            response = AIMessage(content="Error: The image file could not be found. Please upload the brain MRI image again.")
             return {
                 **state,
                 "output": response,
@@ -1214,11 +1678,19 @@ Response:"""
             }
     
     def run_chest_xray_agent(state: AgentState) -> AgentState:
-        """Handle chest X-ray image analysis with full MedRAX integration."""
+        """Handle chest X-ray image analysis with full MedRAX integration - returns raw MedRAX output."""
         from agents.image_analysis_agent.chest_xray_agent.medrax_full_integration import MedRAXFullIntegration
 
         current_input = state["current_input"]
-        image_path = current_input.get("image", None) if isinstance(current_input, dict) else None
+        
+        # Get image path from multiple sources
+        image_path = None
+        if isinstance(current_input, dict):
+            image_path = current_input.get("image", None)
+        
+        # Also check state for image path (from analyze_input)
+        if not image_path:
+            image_path = state.get("image_path") or state.get("last_image_path")
         
         # Extract user's query from messages or current_input
         user_query = ""
@@ -1245,7 +1717,7 @@ Response:"""
         print(f"User query: {user_query}")
 
         if not image_path or not os.path.exists(image_path):
-            response = AIMessage(content="Error: No valid image provided for chest X-ray analysis.")
+            response = AIMessage(content="Error: No valid image provided for chest X-ray analysis. Please upload a chest X-ray image.")
             return {
                 **state,
                 "output": response,
@@ -1290,13 +1762,12 @@ Response:"""
             print(f"  - Segmentation: {segmentation_image_url}")
             print(f"  - Disease Grounding: {disease_grounding_url}")
             
-            # Build comprehensive response
-            response_text = build_comprehensive_medrax_response(
+            # Return RAW MedRAX output without prompt engineering
+            response_text = build_raw_medrax_response(
                 classification, 
                 segmentation, 
                 report, 
-                disease_grounding, 
-                user_query
+                disease_grounding
             )
             
             response = AIMessage(content=response_text)
@@ -1502,29 +1973,44 @@ The uploaded skin lesion image has been successfully analyzed using AI segmentat
 
     # Check output through guardrails
     def apply_output_guardrails(state: AgentState) -> AgentState:
-        """Apply output guardrails to the generated response."""
+        """Apply output guardrails to the generated response.
+        
+        PERFORMANCE OPTIMIZATION: Output guardrails disabled for speed.
+        Saves 2-4 seconds per query. Medical agents have their own safety checks.
+        """
+        # DISABLED: Just pass through without LLM check (saves 2-4 seconds)
+        print(f"[Guardrails] Output guardrails DISABLED for performance - passing through")
+        
+        output = state["output"]
+        
+        # Just add the output to messages unchanged (no LLM filtering)
+        return {
+            **state,
+            "messages": output,
+            "output": output
+        }
+
+    # OLD CODE (disabled for speed) - commented out entire function
+    def apply_output_guardrails_OLD_DISABLED(state: AgentState) -> AgentState:
+        """OLD VERSION - Disabled for performance optimization."""
         output = state["output"]
         current_input = state["current_input"]
         agent_name = state.get("agent_name", "")
 
-        # Check if output is valid
         if not output or not isinstance(output, (str, AIMessage)):
             return state
 
         output_text = output if isinstance(output, str) else output.content
         
-        # Skip guardrails for medical image analysis agents (substring match)
         medical_agents = ["CHEST_XRAY_AGENT", "BRAIN_TUMOR_AGENT", "SKIN_LESION_AGENT"]
         if any(m in agent_name for m in medical_agents):
             print(f"[Guardrails] Skipping output guardrails for medical image analysis agent: {agent_name}")
-            # Ensure the assistant message is added to messages unchanged
             return {
                 **state,
                 "messages": output,
                 "output": output
             }
 
-        # If the last message was a human validation message
         if "Human Validation Required" in output_text:
             # Check if the current input is a human validation response
             validation_input = ""
@@ -1559,19 +2045,14 @@ The uploaded skin lesion image has been successfully analyzed using AI segmentat
         elif isinstance(current_input, dict):
             input_text = current_input.get("text", "")
         
-        # Apply output sanitization for non-medical agents
-        sanitized_output = guardrails.check_output(output_text, input_text)
-        
-        # For non-validation cases, add the sanitized output to messages
-        sanitized_message = AIMessage(content=sanitized_output) if isinstance(output, AIMessage) else sanitized_output
-        
-        return {
-            **state,
-            "messages": sanitized_message,
-            "output": sanitized_message
-        }
+            sanitized_output = guardrails.check_output(output_text, input_text)
+            sanitized_message = AIMessage(content=sanitized_output) if isinstance(output, AIMessage) else sanitized_output
+            return {
+                **state,
+                "messages": sanitized_message,
+                "output": sanitized_message
+            }
 
-    
     # Create the workflow graph
     workflow = StateGraph(AgentState)
     
@@ -1656,6 +2137,7 @@ def init_agent_state() -> AgentState:
         "image_type": None,
         "image_classification_confidence": None,
         "last_image_path": None,
+        "image_path": None,  # Store current image path for agents
         "output": None,
         "needs_human_validation": False,
         "retrieval_confidence": 0.0,

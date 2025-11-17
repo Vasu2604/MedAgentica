@@ -7,16 +7,33 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 8000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
+        ws: true, // Enable WebSocket proxying
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('Proxy error:', err);
+          });
+        },
       },
       '/uploads': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
+        ws: true, // Enable WebSocket proxying
+      },
+      '/chat': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/upload': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        ws: true,
       },
     },
   },

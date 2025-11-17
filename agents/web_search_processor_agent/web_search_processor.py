@@ -97,6 +97,21 @@ class WebSearchProcessor:
 
         except Exception as e:
             print(f"[WebSearchProcessor] LLM error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Check if it's a rate limit error
+            error_str = str(e).lower()
+            if "429" in error_str or "rate limit" in error_str or "too many requests" in error_str:
+                return """I apologize, but I'm currently experiencing high API usage and cannot process web searches at the moment. 
+
+Please try one of these alternatives:
+1. Wait a few minutes and try again
+2. Search directly on medical websites like Mayo Clinic, WebMD, or CDC
+3. Ask me to answer from my existing medical knowledge (RAG agent)
+
+Your question: "{query}" - I can try to answer from my medical knowledge base if you'd like.""".format(query=query)
+            
             # Fallback to a simple summary if LLM fails
             if web_results and len(web_results) > 0:
                 # Extract key information from search results

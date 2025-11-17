@@ -37,7 +37,7 @@ app = FastAPI(title="Multi-Agent Medical Chatbot", version="2.0")
 # Configure CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"],  # Frontend URLs
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -312,9 +312,12 @@ def chat(
         # Check if user is referring to a previously uploaded image
         query_lower = request.query.lower()
         image_analysis_keywords = [
-            "analyze", "image", "picture", "photo", "scan", "x-ray", "xray", "mri",
+            "analyze", "image", "picture", "photo", "scan", "x-ray", "xray", "x ray", "mri",
             "the image", "this image", "uploaded image", "the picture", "this picture",
-            "check", "look at", "examine", "diagnose", "detect", "classify"
+            "check", "look at", "examine", "diagnose", "detect", "classify",
+            "analyze xray", "analyze x-ray", "analyze the xray", "analyze the x-ray",
+            "check xray", "check x-ray", "examine xray", "examine x-ray",
+            "xray image", "x-ray image", "chest xray", "chest x-ray"
         ]
         
         # Check if query mentions image analysis
@@ -427,17 +430,14 @@ async def upload_image(
         response_data = process_query(query)
         response_text = response_data['messages'][-1].content
         
-        # Clean response text - remove any image paths or encoded strings
+        # Clean response text - only remove data URLs and encoded strings, keep file paths for display
         if response_text:
             import re
-            # Remove data URLs
+            # Remove data URLs (base64 encoded images)
             response_text = re.sub(r'data:image/[^;]+;base64,[A-Za-z0-9+/=]{50,}', '', response_text)
-            # Remove long encoded strings
-            response_text = re.sub(r'[A-Za-z0-9+/=]{80,}', '', response_text)
-            # Remove file paths
-            response_text = re.sub(r'/uploads/[^\s<>"]+', '', response_text)
-            # Remove image file extensions with paths
-            response_text = re.sub(r'[^\s<>"]+\.(png|jpg|jpeg|gif|bmp)', '', response_text, flags=re.IGNORECASE)
+            # Remove very long encoded strings (likely corrupted data)
+            response_text = re.sub(r'[A-Za-z0-9+/=]{100,}', '', response_text)
+            # Don't remove file paths - they might be needed for image display
 
         # Set secure session cookie
         response.set_cookie(
