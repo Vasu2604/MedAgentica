@@ -311,13 +311,12 @@ def chat(
     try:
         # Check if user is referring to a previously uploaded image
         query_lower = request.query.lower()
+        # Refined keywords - only force image context if user EXPLICITLY refers to the image
+        # Generic words like "check", "examine", "diagnose" are removed to prevent false positives
         image_analysis_keywords = [
-            "analyze", "image", "picture", "photo", "scan", "x-ray", "xray", "x ray", "mri",
             "the image", "this image", "uploaded image", "the picture", "this picture",
-            "check", "look at", "examine", "diagnose", "detect", "classify",
-            "analyze xray", "analyze x-ray", "analyze the xray", "analyze the x-ray",
-            "check xray", "check x-ray", "examine xray", "examine x-ray",
-            "xray image", "x-ray image", "chest xray", "chest x-ray"
+            "the scan", "this scan", "the x-ray", "this x-ray", "the xray", "this xray",
+            "the mri", "this mri", "analyze image", "analyze picture", "analyze scan"
         ]
         
         # Check if query mentions image analysis
@@ -328,11 +327,14 @@ def chat(
         if mentions_image and session_id:
             stored_image_path = get_session_image(session_id)
             if stored_image_path:
-                print(f"🔍 User query mentions image analysis - Using stored image: {stored_image_path}")
+                print(f"🔍 User query explicitly mentions image - Using stored image: {stored_image_path}")
                 # Create dict input with both text and image
                 query_input = {"text": request.query, "image": stored_image_path}
             else:
                 print(f"⚠️ User mentions image but no stored image found for session {session_id}")
+        # Also pass the image path if it exists, but let the router decide (optional enhancement)
+        # For now, we stick to the explicit check to avoid confusing the router
+
         
         response_data = process_query(query_input)
         response_text = response_data['messages'][-1].content

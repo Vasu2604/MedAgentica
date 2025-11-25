@@ -16,10 +16,7 @@ import os, getpass
 from dotenv import load_dotenv
 from agents.rag_agent import MedicalRAG
 # Import the agentic RAG system
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from demo_agentic_rag import AgenticRAGSystem
+# from demo_agentic_rag import AgenticRAGSystem
 from agents.web_search_processor_agent import WebSearchProcessorAgent
 from agents.image_analysis_agent import ImageAnalysisAgent
 from agents.guardrails.local_guardrails import LocalGuardrails
@@ -1378,6 +1375,11 @@ Response:"""
 
         try:
             # Initialize the agentic RAG system
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from legacy.demo_agentic_rag import AgenticRAGSystem
+
             agentic_rag = AgenticRAGSystem(
                 pinecone_api_key=os.getenv("PINECONE_API_KEY", ""),
                 pinecone_index_name=os.getenv("PINECONE_INDEX_NAME", "medagentica"),
