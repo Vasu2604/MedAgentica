@@ -18,6 +18,15 @@
 
 **[📖 Documentation](#-documentation) • [🚀 Quick Start](#-quick-start) • [🎯 Features](#-key-features) • [🏗️ Architecture](#️-system-architecture) • [🤝 Contributing](#-contributing)**
 
+
+## 🎥 **Demonstration**
+
+
+
+https://github.com/user-attachments/assets/88e3868c-9234-4cda-9954-116194d63c86
+
+
+
 ---
 
 </div>
@@ -366,20 +375,6 @@ python evaluation/evaluate_rag_llm.py
 | **Hallucination** | < 0.2 | 0.2-0.3 | 0.3-0.5 |
 | **Faithfulness** | > 0.8 | 0.6-0.8 | 0.4-0.6 |
 | **Latency** | < 2000ms | < 1500ms | 1500-3000ms |
-
----
-
-## 🎥 **Demonstration**
-
-### **[▶️ Click Here to Watch the Full Demo Video](Demonstration/Full%20video.mp4)**
-
-*(Clicking the link above will open the video player in GitHub)*
-
-<div align="center">
-  <a href="Demonstration/Full%20video.mp4">
-    <img src="assets/logo_rounded.png" alt="Watch Demo" width="200"/>
-  </a>
-</div>
 
 ---
 
