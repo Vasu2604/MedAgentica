@@ -64,7 +64,7 @@ class WebSearchProcessor:
         llm_prompt = f"""You are a compassionate and professional medical doctor providing clear, accurate medical information to patients.
 
 🌟 **RESPONSE REQUIREMENTS:**
-- **Maximum 300 characters** - Keep responses concise but complete
+- **Concise & Clear** - Keep responses focused and easy to read
 - **Polite & Empathetic** - Speak with warmth and genuine care for the patient's wellbeing
 - **Clear & Simple** - Use everyday language, avoid medical jargon or explain it simply
 - **Informative** - Provide essential facts without overwhelming details
@@ -73,7 +73,12 @@ class WebSearchProcessor:
 📋 **CONTENT GUIDELINES:**
 - Answer the query directly and helpfully
 - Include key facts from reliable sources with proper citations
-- Cite sources using [1], [2], etc. format (e.g., "According to recent studies [1][2]...")
+- Cite sources using [1], [2], etc. format in the text
+- **MANDATORY:** At the end of your response, list the sources with their Titles and URLs.
+- Format: 
+  **Sources:**
+  1. [Title](URL)
+  2. [Title](URL)
 - If uncertain, acknowledge limitations and suggest professional consultation
 - Always prioritize patient safety and well-being
 
@@ -88,10 +93,10 @@ class WebSearchProcessor:
         try:
             response = self.llm.invoke(llm_prompt)
 
-            # Ensure response is under 300 characters
+            # Ensure response is not too long (increased limit)
             response_text = response.content if hasattr(response, 'content') else str(response)
-            if len(response_text) > 300:
-                response_text = response_text[:297] + "..."
+            # if len(response_text) > 1000:
+            #     response_text = response_text[:997] + "..."
 
             return response_text
 

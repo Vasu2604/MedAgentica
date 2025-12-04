@@ -16,9 +16,9 @@ else
     exit 1
 fi
 
-# Check if port 8000 is already in use
-if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
-    echo "⚠️  Port 8000 is already in use. Killing existing process..."
+# Check if port 8001 is already in use
+if lsof -Pi :8001 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo "⚠️  Port 8001 is already in use. Killing existing process..."
     pkill -f "python.*app.py"
     pkill -f "uvicorn.*app"
     sleep 2
@@ -27,14 +27,16 @@ fi
 # Start the server
 echo ""
 echo "🚀 Starting Multi-Agent Medical Assistant..."
-echo "📍 Server will be available at: http://localhost:8000"
-echo "📊 Health Check: http://localhost:8000/health"
+echo "📍 Server will be available at: http://localhost:8001"
+echo "📊 Health Check: http://localhost:8001/health"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo "="*60
 echo ""
 
 python start_server.py
+
+
 
 
 

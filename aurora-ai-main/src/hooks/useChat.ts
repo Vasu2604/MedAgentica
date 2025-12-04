@@ -19,26 +19,27 @@ export const useChat = () => {
 
     // Load initial state from local storage
     const loadInitialConversations = (): Conversation[] => {
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                return JSON.parse(saved, parseDates);
-            }
-        } catch (error) {
-            console.error("Failed to load conversations:", error);
-        }
+        // Persistence disabled per user request
+        // try {
+        //     const saved = localStorage.getItem(STORAGE_KEY);
+        //     if (saved) {
+        //         return JSON.parse(saved, parseDates);
+        //     }
+        // } catch (error) {
+        //     console.error("Failed to load conversations:", error);
+        // }
 
         // Default welcome conversation
         return [{
             id: "1",
             title: "New Conversation",
-            preview: "Start chatting with the AI assistant...",
+            preview: "Start chatting with MedAgentica...",
             timestamp: new Date(),
             messages: [
                 {
                     id: "welcome",
                     role: "assistant",
-                    content: "👋 Welcome to MedAgentica! I'm your AI medical assistant powered by multiple specialized agents:\n\n💬 Conversation Agent - General health discussions\n\n📚 RAG Agent - Medical knowledge queries\n\n🌐 Web Search Agent - Latest medical research\n\n🧠 Brain Tumor Agent - MRI analysis\n\n🫁 Chest X-ray Agent - COVID-19 detection\n\n🩺 Skin Lesion Agent - Skin condition analysis\n\nHow can I assist you today?",
+                    content: "👋 Welcome to MedAgentica! I'm your medical assistant powered by multiple specialized agents:\n\n💬 Conversation Agent - General health discussions\n\n📚 RAG Agent - Medical knowledge queries\n\n🌐 Web Search Agent - Latest medical research\n\n🧠 Brain Tumor Agent - MRI analysis\n\n🫁 Chest X-ray Agent - COVID-19 detection\n\n🩺 Skin Lesion Agent - Skin condition analysis\n\nHow can I assist you today?",
                     timestamp: new Date(),
                     agent: "SYSTEM",
                 },
@@ -49,8 +50,11 @@ export const useChat = () => {
     const [conversations, setConversations] = useState<Conversation[]>(loadInitialConversations);
 
     const [selectedChat, setSelectedChat] = useState<string>(() => {
-        return localStorage.getItem(SELECTED_CHAT_KEY) || conversations[0]?.id || "1";
+        // return localStorage.getItem(SELECTED_CHAT_KEY) || conversations[0]?.id || "1";
+        return "1";
     });
+
+    const [userRole, setUserRole] = useState<"patient" | "clinician">("patient");
 
     const [uploadedImages, setUploadedImages] = useState<File[]>([]);
     const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
@@ -60,15 +64,15 @@ export const useChat = () => {
     const currentConversation = conversations.find((c) => c.id === selectedChat);
     const messages = currentConversation?.messages || [];
 
-    // Persist conversations to local storage
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-    }, [conversations]);
+    // Persist conversations to local storage - DISABLED
+    // useEffect(() => {
+    //     localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    // }, [conversations]);
 
-    // Persist selected chat
-    useEffect(() => {
-        localStorage.setItem(SELECTED_CHAT_KEY, selectedChat);
-    }, [selectedChat]);
+    // Persist selected chat - DISABLED
+    // useEffect(() => {
+    //     localStorage.setItem(SELECTED_CHAT_KEY, selectedChat);
+    // }, [selectedChat]);
 
     useEffect(() => {
         const handleNewChatEvent = () => createNewChat();
@@ -87,7 +91,7 @@ export const useChat = () => {
                 {
                     id: "welcome-" + newId,
                     role: "assistant",
-                    content: "👋 Welcome to MedAgentica! I'm your AI medical assistant powered by multiple specialized agents:\n\n💬 Conversation Agent - General health discussions\n\n📚 RAG Agent - Medical knowledge queries\n\n🌐 Web Search Agent - Latest medical research\n\n🧠 Brain Tumor Agent - MRI analysis\n\n🫁 Chest X-ray Agent - COVID-19 detection\n\n🩺 Skin Lesion Agent - Skin condition analysis\n\nHow can I assist you today?",
+                    content: "👋 Welcome to MedAgentica! I'm your medical assistant powered by multiple specialized agents:\n\n💬 Conversation Agent - General health discussions\n\n📚 RAG Agent - Medical knowledge queries\n\n🌐 Web Search Agent - Latest medical research\n\n🧠 Brain Tumor Agent - MRI analysis\n\n🫁 Chest X-ray Agent - COVID-19 detection\n\n🩺 Skin Lesion Agent - Skin condition analysis\n\nHow can I assist you today?",
                     timestamp: new Date(),
                     agent: "SYSTEM",
                 },
@@ -147,7 +151,7 @@ export const useChat = () => {
                 )
             );
 
-            const response: ChatResponse = await apiService.sendMessage(input, [], controller.signal);
+            const response: ChatResponse = await apiService.sendMessage(input, [], userRole, selectedChat, controller.signal);
 
             const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
@@ -158,6 +162,7 @@ export const useChat = () => {
                 thinking: response.thinking,
                 suggestions: response.suggestions,
                 result_image: response.result_image,
+                all_images: response.all_images,
             };
 
             setConversations((prev) =>
@@ -208,7 +213,7 @@ export const useChat = () => {
                 )
             );
 
-            const response = await apiService.uploadImage(uploadedImages[0], input, controller.signal);
+            const response = await apiService.uploadImage(uploadedImages[0], input, userRole, selectedChat, controller.signal);
 
             const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
@@ -219,6 +224,7 @@ export const useChat = () => {
                 thinking: response.thinking,
                 suggestions: response.suggestions,
                 result_image: response.result_image,
+                all_images: response.all_images,
             };
 
             setConversations((prev) =>
@@ -295,5 +301,7 @@ export const useChat = () => {
         removeImage,
         deleteChat,
         renameChat,
+        userRole,
+        setUserRole,
     };
 };

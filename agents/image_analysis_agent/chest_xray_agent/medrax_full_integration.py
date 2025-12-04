@@ -9,6 +9,9 @@ import logging
 from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path
 import importlib.util
+import matplotlib
+# Fix for macOS threading crash
+matplotlib.use('Agg')
 
 # Add MedRAX to Python path
 # Use the provided MedRAX path
@@ -62,7 +65,7 @@ class MedRAXFullIntegration:
             self.device = "cpu"
         
         # Set directories
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         self.cache_dir = cache_dir or os.path.join(project_root, "model-weights")
         # Use uploads directory for temp files so they can be served
         self.temp_dir = temp_dir or os.path.join(project_root, "uploads", "chest_xray_output")
@@ -119,16 +122,21 @@ class MedRAXFullIntegration:
             # Load Phrase Grounding Tool
             grounding_path = os.path.join(medrax_base_path, "medrax/tools/grounding.py")
             if os.path.exists(grounding_path):
-                spec = importlib.util.spec_from_file_location("medrax_grounding", grounding_path)
-                medrax_grounding = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(medrax_grounding)
-                self.phrase_grounding = medrax_grounding.XRayPhraseGroundingTool(
-                    cache_dir=self.cache_dir,
-                    temp_dir=self.temp_dir,
-                    load_in_8bit=True,
-                    device=self.device
-                )
-                self.logger.info("✅ MedRAX Phrase Grounding Tool loaded")
+                try:
+                    spec = importlib.util.spec_from_file_location("medrax_grounding", grounding_path)
+                    medrax_grounding = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(medrax_grounding)
+                    self.phrase_grounding = medrax_grounding.XRayPhraseGroundingTool(
+                        cache_dir=self.cache_dir,
+                        temp_dir=self.temp_dir,
+                        load_in_8bit=True,
+                        device=self.device
+                    )
+                    self.logger.info("✅ MedRAX Phrase Grounding Tool loaded")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Could not load Phrase Grounding Tool (likely authentication/permissions issue): {e}")
+                    self.logger.warning("Continuing without Phrase Grounding capability.")
+                    self.phrase_grounding = None
             
             # Load VQA Tool
             vqa_path = os.path.join(medrax_base_path, "medrax/tools/xray_vqa.py")

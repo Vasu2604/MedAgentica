@@ -291,8 +291,8 @@ class MedicalCVConfig:
         self.chest_xray_model_path = os.path.join(project_root, "agents/image_analysis_agent/chest_xray_agent/models/covid_chest_xray_model.pth")
         self.skin_lesion_model_path = os.path.join(project_root, "agents/image_analysis_agent/skin_lesion_agent/models/checkpointN25_.pth.tar")
         self.skin_lesion_segmentation_output_path = os.path.join(project_root, "uploads/skin_lesion_output/overlayed_plot.png")
-        # Use local MedGemma for medical image analysis (deterministic, private)
-        self.llm = create_llm(temperature=0.1, use_local=True)  # Keep deterministic for classification tasks
+        # Use remote LLM for medical image analysis to ensure reliability and better prompting
+        self.llm = create_llm(temperature=0.1, use_local=False)  # Use API for reliable generation
 
 class SpeechConfig:
     def __init__(self):

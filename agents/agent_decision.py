@@ -76,7 +76,7 @@ class AgentConfig:
     CONFIDENCE_THRESHOLD = 0.85
     
     # System instructions for the decision agent
-    DECISION_SYSTEM_PROMPT = """You are an intelligent medical triage system that routes user queries to 
+    DECISION_SYSTEM_PROMPT = """You are Metagentica, an intelligent medical triage system that routes user queries to 
     the appropriate specialized agent. Your job is to analyze the user's request and determine which agent 
     is best suited to handle it based on the query content, presence of images, and conversation context.
 
@@ -97,6 +97,7 @@ class AgentConfig:
     - For text-only queries asking about medical knowledge, use RAG_AGENT.
     - For recent medical news or current events, use WEB_SEARCH_PROCESSOR_AGENT.
     - For general conversation without medical context, use CONVERSATION_AGENT.
+    - **OUT OF DOMAIN**: If the query is completely unrelated to health, medicine, or the chatbot's purpose (e.g., "how to fix a car", "write code"), route to CONVERSATION_AGENT but instruct it to politely decline and suggest contacting a specialist in that field.
 
     **MEDICAL IMAGE DETECTION:**
     - Chest X-ray images should go to CHEST_XRAY_AGENT for COVID-19 and abnormality detection.
@@ -105,11 +106,11 @@ class AgentConfig:
     - If image_type is unknown but user mentions medical analysis, default to CHEST_XRAY_AGENT.
 
     You must provide your answer in JSON format with the following structure:
-    {{
+    {
     "agent": "AGENT_NAME",
     "reasoning": "Your step-by-step reasoning for selecting this agent",
     "confidence": 0.95  // Value between 0.0 and 1.0 indicating your confidence in this decision
-    }}
+    }
     """
 
     # Initialize image analyzer
@@ -187,7 +188,7 @@ def build_medrax_response(detailed_analysis: dict, predicted_class: str) -> str:
             response_parts.append(f"- {path}: {prob:.1%}")
     
     # Add disclaimer
-    response_parts.append("\n**Important Disclaimer:** This AI-generated analysis is for informational purposes only and is not a definitive medical diagnosis. It must be reviewed and validated by a qualified healthcare professional.")
+    response_parts.append("\n**Important Disclaimer:** This MedAgentica analysis is for informational purposes only and is not a definitive medical diagnosis. It must be reviewed and validated by a qualified healthcare professional.")
     
     return "\n".join(response_parts)
 
@@ -205,7 +206,7 @@ def build_raw_medrax_response(
     if classification and not classification.get("error"):
         pathologies = classification.get("pathologies", {})
         if pathologies:
-            response_parts.append("___AI Classification Result (18-Disease Analysis)___")
+            response_parts.append("___MedAgentica Classification Result (18-Disease Analysis)___")
             
             # Sort all pathologies by probability
             sorted_pathologies = sorted(pathologies.items(), key=lambda x: x[1], reverse=True)
@@ -413,7 +414,8 @@ Prioritize actionable clinical decisions for point-of-care use."""
 
 def build_brain_tumor_response(
     classification_result: dict,
-    user_query: str = ""
+    user_query: str = "",
+    user_role: str = "patient"
 ) -> str:
     """
     Build comprehensive, professional, and patient-friendly brain tumor analysis response.
@@ -432,29 +434,50 @@ def build_brain_tumor_response(
         # Format probabilities for prompt
         prob_str = format_probabilities(all_probs, top_n=3)
         
-        # Fill in the Mayo Clinic clinical prompt template
-        system_prompt = BRAIN_TUMOR_CLINICAL_PROMPT.format(
-            predicted_class=predicted_class.title(),
-            confidence=f"{confidence:.1f}",
-            all_probabilities=prob_str,
-            user_query=user_query if user_query else "Analyze this brain MRI for tumors"
-        )
+        # NEW: MedAgentica-branded prompt
+        # Comprehensive, detailed, 1-2 paragraphs, appealing, polite, informative
+        
+        medagentica_system_prompt = f"""You are MedAgentica, a wise, kind, and highly knowledgeable AI medical consultant specializing in neuro-radiology.
 
-        user_prompt = f"""Based on the brain MRI AI analysis provided in the system context, generate a comprehensive 
-yet concise clinical consultation (150-200 words max) following the structured format specified. 
+**Brand Identity:**
+- Tone: Formal, professional, yet deeply empathetic and polite.
+- Persona: A world-class specialist who explains things with clarity and wisdom.
+- Style: Comprehensive yet concise (1-2 paragraphs main explanation).
 
-Focus on:
-- Immediate clinical significance
-- Clear diagnostic assessment  
-- Actionable next steps (imaging, consultation, monitoring)
-- Evidence-based recommendations
-- Brief patient education section
+**Clinical Context:**
+- Analysis: {predicted_class.title()}
+- Confidence: {confidence:.1f}%
+- Probability Distribution: {prob_str}
 
-Prioritize information that helps the clinician make safe, effective decisions at point of care."""
+**User Role:** {user_role.upper()}
+
+**Instructions:**
+1. **Main Explanation (1-2 Paragraphs):** 
+   - Write a detailed, narrative explanation of the findings.
+   - Be "appealing to read and hear" – use smooth, natural language.
+   - For PATIENTS: Explain the condition in simple, reassuring terms. Focus on what it means and next steps.
+   - For CLINICIANS: Focus on the diagnostic certainty, differential, and clinical management.
+   - Mention "MedAgentica" naturally in the text (e.g., "MedAgentica's analysis indicates...").
+
+2. **Key Details (Bulleted):**
+   - After the narrative, provide a brief, high-impact list of 3-4 key takeaways or next steps.
+
+3. **Closing:**
+   - End with a polite, wise, and supportive closing statement.
+
+**Constraints:**
+- Do NOT use complex markdown tables.
+- Keep the total response focused and "to the point" while being detailed.
+"""
+
+        user_prompt = f"""Based on the brain MRI analysis provided, generate a response for a {user_role} regarding the finding of {predicted_class}.
+        
+        User Query: {user_query if user_query else "Analyze this brain MRI"}
+        """
 
         llm = config.medical_cv.llm
         messages = [
-            SystemMessage(content=system_prompt),
+            SystemMessage(content=medagentica_system_prompt),
             HumanMessage(content=user_prompt)
         ]
         response = llm.invoke(messages)
@@ -497,7 +520,8 @@ def _build_fallback_brain_tumor_response(classification_result: dict, user_query
 
 def build_skin_cancer_response(
     classification_result: dict,
-    user_query: str = ""
+    user_query: str = "",
+    user_role: str = "patient"
 ) -> str:
     """
     Build comprehensive, professional, and patient-friendly skin cancer analysis response.
@@ -527,18 +551,35 @@ def build_skin_cancer_response(
             user_query=user_query if user_query else "Analyze this skin lesion"
         )
 
-        user_prompt = f"""Based on the skin lesion AI analysis provided in the system context, generate a comprehensive 
-yet concise clinical consultation (150-200 words max) following the Mayo Clinic structured format specified.
+        if user_role == "clinician":
+            role_instruction = """
+            Generate a professional clinical consultation report.
+            - Use standard dermatological terminology (e.g., asymmetry, border irregularity).
+            - Focus on differential diagnosis, biopsy indications, and management.
+            - Tone: Professional, objective, and concise.
+            """
+        else:
+            role_instruction = """
+            Generate a highly empathetic and patient-centered explanation.
+            - Speak directly to the patient using "you" and "your".
+            - Avoid complex medical jargon; if a term is necessary, explain it immediately in simple terms.
+            - Focus on what this means for their daily life and next steps.
+            - Be reassuring but realistic.
+            - Use phrases like "MedAgentica suggests..." instead of "The AI found...".
+            - Tone: Warm, caring, and supportive, like a kind family doctor explaining to a patient.
+            """
 
-Focus on:
-- Immediate clinical significance and urgency
-- Clear assessment with ABCDE criteria if relevant
-- Biopsy indications and timing
-- Actionable management recommendations
-- Evidence-based dermatologic care
-- Brief patient education on self-monitoring
+        user_prompt = f"""Based on the skin lesion Metagentica analysis provided in the system context, generate a response following these instructions:
+        
+        {role_instruction}
 
-Prioritize information that helps the clinician make safe, effective decisions at point of care."""
+        Structure the response with:
+        - **Assessment**: Clear statement of findings.
+        - **Explanation**: Why this conclusion was reached.
+        - **Recommendations**: Concrete next steps.
+        
+        Context: Explain WHY the lesion was classified this way.
+        """
 
         llm = config.medical_cv.llm
         messages = [
@@ -569,7 +610,7 @@ def _build_fallback_skin_cancer_response(classification_result: dict, user_query
     # Greeting
     if user_query:
         response_parts.append(f"Thank you for your question: *{user_query}*\n")
-    response_parts.append("I've analyzed your skin lesion image using advanced AI technology (EfficientNet-B0). Let me explain the results in a clear and understandable way.\n")
+    response_parts.append("I've analyzed your skin lesion image using Metagentica's advanced technology (EfficientNet-B0). Let me explain the results in a clear and understandable way.\n")
     
     # Classification Results
     response_parts.append("### 🔬 Classification Results\n")
@@ -577,10 +618,10 @@ def _build_fallback_skin_cancer_response(classification_result: dict, user_query
     is_malignant = predicted_class == "malignant"
     
     if is_malignant:
-        response_parts.append(f"**Primary Assessment:** The AI analysis suggests this lesion may be **malignant** (cancerous) with {confidence:.1f}% confidence.\n")
-        response_parts.append("⚠️ **Important:** This is a preliminary AI assessment. A malignant classification requires immediate professional evaluation by a dermatologist.\n")
+        response_parts.append(f"**Primary Assessment:** The Metagentica analysis suggests this lesion may be **malignant** (cancerous) with {confidence:.1f}% confidence.\n")
+        response_parts.append("⚠️ **Important:** This is a preliminary Metagentica assessment. A malignant classification requires immediate professional evaluation by a dermatologist.\n")
     else:
-        response_parts.append(f"**Primary Assessment:** The AI analysis suggests this lesion appears **benign** (non-cancerous) with {confidence:.1f}% confidence.\n")
+        response_parts.append(f"**Primary Assessment:** The Metagentica analysis suggests this lesion appears **benign** (non-cancerous) with {confidence:.1f}% confidence.\n")
         response_parts.append("✅ **Note:** While this is encouraging, regular skin checks with a dermatologist are still recommended for peace of mind.\n")
     
     # Probability Breakdown
@@ -591,13 +632,13 @@ def _build_fallback_skin_cancer_response(classification_result: dict, user_query
     # What This Means
     response_parts.append("### 💡 What This Means for You\n")
     if is_malignant:
-        response_parts.append("If the AI suggests a malignant classification, it's important to:")
+        response_parts.append("If MedAgentica suggests a malignant classification, it's important to:")
         response_parts.append("- Schedule an appointment with a dermatologist as soon as possible")
         response_parts.append("- Avoid delaying professional evaluation")
         response_parts.append("- Remember that early detection and treatment are crucial")
     else:
         response_parts.append("A benign classification suggests the lesion is likely non-cancerous, but:")
-        response_parts.append("- This is an AI assessment, not a definitive diagnosis")
+        response_parts.append("- This is a Metagentica assessment, not a definitive diagnosis")
         response_parts.append("- Regular professional skin examinations are still important")
         response_parts.append("- Monitor the lesion for any changes over time")
     
@@ -623,13 +664,13 @@ def _build_fallback_skin_cancer_response(classification_result: dict, user_query
     
     # Concluding Statement
     if user_query and ("cancer" in user_query.lower() or "malignant" in user_query.lower() or "benign" in user_query.lower()):
-        response_parts.append("I understand your concern about this skin lesion. The AI analysis provides a preliminary assessment, but a qualified dermatologist can give you a definitive diagnosis through clinical examination and, if needed, a biopsy. Please don't hesitate to seek professional medical advice.\n")
+        response_parts.append("I understand your concern about this skin lesion. The Metagentica analysis provides a preliminary assessment, but a qualified dermatologist can give you a definitive diagnosis through clinical examination and, if needed, a biopsy. Please don't hesitate to seek professional medical advice.\n")
     else:
-        response_parts.append("I hope this analysis helps address your concerns. Remember, this AI assessment is a tool to assist, not replace, professional medical judgment. Your dermatologist can provide a comprehensive evaluation and personalized guidance.\n")
+        response_parts.append("I hope this analysis helps address your concerns. Remember, this Metagentica assessment is a tool to assist, not replace, professional medical judgment. Your dermatologist can provide a comprehensive evaluation and personalized guidance.\n")
     
     # Medical Disclaimer
     response_parts.append("### ⚠️ Important Medical Disclaimer\n")
-    response_parts.append("This AI-generated analysis is for informational and educational purposes only. It is **not** a substitute for professional medical diagnosis, advice, or treatment. Always consult with a qualified dermatologist or healthcare professional for proper evaluation, diagnosis, and treatment recommendations. Do not make medical decisions based solely on this AI analysis.")
+    response_parts.append("This Metagentica analysis is for informational and educational purposes only. It is **not** a substitute for professional medical diagnosis, advice, or treatment. Always consult with a qualified dermatologist or healthcare professional for proper evaluation, diagnosis, and treatment recommendations. Do not make medical decisions based solely on this Metagentica analysis.")
     
     return "\n".join(response_parts)
 
@@ -720,7 +761,9 @@ class AgentState(MessagesState):
     retrieval_confidence: float  # Confidence in retrieval (for RAG agent)
     bypass_routing: bool  # Flag to bypass agent routing for guardrails
     insufficient_info: bool  # Flag indicating RAG response has insufficient information
+    insufficient_info: bool  # Flag indicating RAG response has insufficient information
     awaiting_image_clarification: bool  # Flag indicating we're waiting for user to clarify image type
+    user_role: Optional[str]  # User role: "patient" or "clinician"
 
 
 class AgentDecision(TypedDict):
@@ -794,6 +837,7 @@ def create_agent_graph():
             # Store image path in state for agents to use
             if image_path:
                 state["image_path"] = image_path
+                state["last_image_path"] = image_path  # Persist for follow-up questions
             
             if image_path and os.path.exists(image_path):
                 print(f"🖼️ Analyzing NEW image: {image_path}")
@@ -953,7 +997,10 @@ def create_agent_graph():
                         "pulmonary", "respiratory", "breathing", "analyze xray", "analyze x-ray",
                         "analyze the xray", "analyze the x-ray", "check xray", "check x-ray",
                         "examine xray", "examine x-ray", "diagnose xray", "diagnose x-ray",
-                        "xray image", "x-ray image", "chest xray", "chest x-ray"]
+                        "xray image", "x-ray image", "chest xray", "chest x-ray",
+                        "segmentation", "segment", "grounding", "visualize", "visualization",
+                        "show me the image", "show me the picture", "show me the scan",
+                        "where is the", "highlight", "locate", "area"]
         has_xray_keywords = any(keyword in input_text_lower for keyword in xray_keywords)
         
         # Strong brain/MRI keywords
@@ -1132,7 +1179,7 @@ def create_agent_graph():
                 # Check for image analysis keywords - identify which type of analysis
                 is_brain_tumor = any(keyword in content for keyword in ["Pituitary", "Glioma", "Meningioma", "No Tumor", "Brain MRI", "brain tumor"])
                 is_skin_lesion = any(keyword in content for keyword in ["Skin lesion", "benign", "malignant", "melanoma", "dermatology"])
-                is_chest_xray = any(keyword in content for keyword in ["Chest X-ray", "MedRAX", "COVID", "pneumonia", "chest xray"])
+                is_chest_xray = any(keyword in content for keyword in ["Chest X-ray", "MedRAX", "COVID", "pneumonia", "chest xray", "Lung Opacity"])
                 
                 # Check for any image analysis indicators
                 has_analysis = any(keyword in content for keyword in ["Classification:", "Clinical Note:", "Recommendation:", 
@@ -1647,7 +1694,7 @@ Would you like to upload the image again so I can provide more specific guidance
                 print(f"✅ Using Brain Tumor Classifier: {classification_result.get('predicted_class')} ({classification_result.get('confidence'):.2f}%)")
                 
                 # Build comprehensive professional response
-                response_text = build_brain_tumor_response(classification_result, user_query)
+                response_text = build_brain_tumor_response(classification_result, user_query, state.get("user_role", "patient"))
                 response = AIMessage(content=response_text)
             else:
                 # Fallback: old format or error
@@ -1746,7 +1793,7 @@ Would you like to upload the image again so I can provide more specific guidance
             disease_grounding_path = disease_grounding.get("combined_visualization_path") if disease_grounding else None
             
             # Convert paths to URLs
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             
             def path_to_url(path):
                 if path and os.path.exists(path):
@@ -1771,6 +1818,9 @@ Would you like to upload the image again so I can provide more specific guidance
                 report, 
                 disease_grounding
             )
+            
+            # Add explicit header for detection
+            response_text = "**MedRAX Chest X-ray Analysis**\n\n" + response_text
             
             response = AIMessage(content=response_text)
 
@@ -1838,6 +1888,10 @@ Would you like to upload the image again so I can provide more specific guidance
         current_input = state["current_input"]
         image_path = current_input.get("image", None) if isinstance(current_input, dict) else None
         
+        # Check for previous image if none provided
+        if not image_path:
+            image_path = state.get("last_image_path") or state.get("image_path")
+        
         # Extract user's query
         user_query = ""
         if isinstance(current_input, dict):
@@ -1878,7 +1932,7 @@ Would you like to upload the image again so I can provide more specific guidance
                 print(f"✅ Using Skin Cancer Classifier: {classification_result.get('predicted_class')} ({classification_result.get('confidence'):.2f}%)")
                 
                 # Build comprehensive professional response
-                response_text = build_skin_cancer_response(classification_result, user_query)
+                response_text = build_skin_cancer_response(classification_result, user_query, state.get("user_role", "patient"))
                 response = AIMessage(content=response_text)
                 
                 return {
@@ -1911,7 +1965,7 @@ The uploaded skin lesion image has been successfully analyzed using AI segmentat
 - Consult with a qualified dermatologist for professional evaluation and classification
 - Consider follow-up examination if concerned about any skin changes
 
-**Medical Disclaimer:** This AI analysis is for informational purposes only and cannot replace professional medical evaluation.""")
+**Medical Disclaimer:** This Metagentica analysis is for informational purposes only and cannot replace professional medical evaluation.""")
                     else:
                         response = AIMessage(content="Skin Lesion Analysis Complete\n\nThe skin lesion has been successfully segmented using AI technology. Please consult with a healthcare professional for classification and diagnosis.")
                 else:
@@ -2138,23 +2192,25 @@ def init_agent_state() -> AgentState:
         "has_image": False,
         "image_type": None,
         "image_classification_confidence": None,
-        "last_image_path": None,
+        # "last_image_path": None,  # CRITICAL: Do NOT reset this, let it persist from checkpoint
         "image_path": None,  # Store current image path for agents
         "output": None,
         "needs_human_validation": False,
         "retrieval_confidence": 0.0,
         "bypass_routing": False,
         "insufficient_info": False,
-        "awaiting_image_clarification": False
+        "awaiting_image_clarification": False,
+        "user_role": "patient"
     }
 
 
-def process_query(query: Union[str, Dict], conversation_history: List[BaseMessage] = None) -> str:
+def process_query(query: Union[str, Dict], conversation_history: List[BaseMessage] = None, thread_id: str = "1") -> str:
     """Process a user query through the agent decision system.
     
     Args:
         query: User input (text string or dict with text and image)
         conversation_history: Optional list of previous messages
+        thread_id: Unique identifier for the conversation thread
         
     Returns:
         Response from the appropriate agent
@@ -2180,6 +2236,9 @@ def process_query(query: Union[str, Dict], conversation_history: List[BaseMessag
     if isinstance(query, dict):
         # Preserve the original text query
         text_query = query.get("text", "")
+        # Extract user role if present
+        state["user_role"] = query.get("user_role", "patient")
+        
         if text_query:
             state["messages"] = [HumanMessage(content=text_query)]
         else:
@@ -2187,9 +2246,13 @@ def process_query(query: Union[str, Dict], conversation_history: List[BaseMessag
             state["messages"] = [HumanMessage(content="Analyze this medical image")]
     else:
         state["messages"] = [HumanMessage(content=query)]
+        state["user_role"] = "patient"
 
-    # result = graph.invoke(state, thread_config)
-    result = graph.invoke(state, thread_config)
+    # Use the provided thread_id for memory persistence
+    current_thread_config = {"configurable": {"thread_id": thread_id}}
+    print(f"🧠 Processing query with thread_id: {thread_id}")
+    
+    result = graph.invoke(state, current_thread_config)
     # print("######### DEBUG 4:", result)
     # state["messages"] = [result["messages"][-1].content]
 

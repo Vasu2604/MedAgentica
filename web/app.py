@@ -210,6 +210,8 @@ cleanup_thread_sessions.start()
 class QueryRequest(BaseModel):
     query: str
     conversation_history: List = []
+    user_role: str = "patient"
+    conversation_id: str = "1"  # Default to "1" for backward compatibility
 
 class SpeechRequest(BaseModel):
     text: str
@@ -329,14 +331,19 @@ def chat(
             if stored_image_path:
                 print(f"🔍 User query explicitly mentions image - Using stored image: {stored_image_path}")
                 # Create dict input with both text and image
-                query_input = {"text": request.query, "image": stored_image_path}
+                query_input = {"text": request.query, "image": stored_image_path, "user_role": request.user_role}
             else:
                 print(f"⚠️ User mentions image but no stored image found for session {session_id}")
         # Also pass the image path if it exists, but let the router decide (optional enhancement)
         # For now, we stick to the explicit check to avoid confusing the router
 
+        if isinstance(query_input, str):
+             query_input = {"text": request.query, "user_role": request.user_role}
         
-        response_data = process_query(query_input)
+        # Use conversation_id from request or session_id as fallback
+        thread_id = request.conversation_id if hasattr(request, "conversation_id") and request.conversation_id else session_id
+        
+        response_data = process_query(query_input, thread_id=thread_id)
         response_text = response_data['messages'][-1].content
         
         # Set secure session cookie
@@ -379,6 +386,53 @@ def chat(
             else:
                 print("Skin Lesion Output path does not exist.")
         
+        # For chest X-ray agent, include all three images
+        if "CHEST_XRAY" in response_data["agent_name"]:
+            print(f"🔍 Processing CHEST_XRAY response data keys: {list(response_data.keys())}")
+            
+            # All three images for display - ALWAYS include all available
+            images = []
+            
+            # Original image
+            if "original_image_url" in response_data and response_data["original_image_url"]:
+                images.append({
+                    "type": "original",
+                    "url": response_data["original_image_url"],
+                    "label": "Original X-ray"
+                })
+            elif "image_path" in response_data and response_data["image_path"]:
+                 # Fallback if URL not in state but path is
+                 img_path = response_data["image_path"]
+                 if os.path.exists(img_path):
+                     rel_path = os.path.relpath(img_path, project_root)
+                     img_url = f"/{rel_path.replace(os.sep, '/')}"
+                     images.append({
+                        "type": "original",
+                        "url": img_url,
+                        "label": "Original X-ray"
+                    })
+
+            # Segmentation image
+            if "segmentation_image_url" in response_data and response_data["segmentation_image_url"]:
+                images.append({
+                    "type": "segmentation",
+                    "url": response_data["segmentation_image_url"],
+                    "label": "Segmentation Overlay"
+                })
+            
+            # Disease grounding image
+            if "disease_grounding_url" in response_data and response_data["disease_grounding_url"]:
+                images.append({
+                    "type": "grounding",
+                    "url": response_data["disease_grounding_url"],
+                    "label": "Disease Grounding"
+                })
+            
+            if images:
+                result["all_images"] = images
+                # For backward compatibility, set result_image to first available
+                result["result_image"] = images[0]["url"]
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -388,6 +442,8 @@ async def upload_image(
     response: Response,
     image: UploadFile = File(...), 
     text: str = Form(""),
+    user_role: str = Form("patient"),
+    conversation_id: str = Form("1"),
     session_id: Optional[str] = Cookie(None)
 ):
     """Process medical image uploads with optional text input."""
@@ -428,8 +484,12 @@ async def upload_image(
     store_session_image(session_id, file_path)
     
     try:
-        query = {"text": text, "image": file_path}
-        response_data = process_query(query)
+        query = {"text": text, "image": file_path, "user_role": user_role}
+        
+        # Use conversation_id from form or session_id as fallback
+        thread_id = conversation_id if conversation_id and conversation_id != "1" else session_id
+        
+        response_data = process_query(query, thread_id=thread_id)
         response_text = response_data['messages'][-1].content
         
         # Clean response text - only remove data URLs and encoded strings, keep file paths for display
@@ -595,6 +655,7 @@ def validate_medical_output(
     response: Response,
     validation_result: str = Form(...), 
     comments: Optional[str] = Form(None),
+    conversation_id: str = Form("1"),
     session_id: Optional[str] = Cookie(None)
 ):
     """Handle human validation for medical AI outputs."""
@@ -619,7 +680,10 @@ def validate_medical_output(
         if comments:
             validation_query += f" Comments: {comments}"
         
-        response_data = process_query(validation_query)
+        # Use conversation_id from form or session_id as fallback
+        thread_id = conversation_id if conversation_id and conversation_id != "1" else session_id
+        
+        response_data = process_query(validation_query, thread_id=thread_id)
 
         if validation_result.lower() == 'yes':
             return {

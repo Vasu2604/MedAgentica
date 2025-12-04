@@ -27,6 +27,8 @@ interface ChatSidebarProps {
     onNewChat: () => void;
     onDeleteChat: (id: string) => void;
     onRenameChat: (id: string, newTitle: string) => void;
+    userRole: "patient" | "clinician";
+    onUserRoleChange: (role: "patient" | "clinician") => void;
 }
 
 export const ChatSidebar = ({
@@ -36,6 +38,8 @@ export const ChatSidebar = ({
     onNewChat,
     onDeleteChat,
     onRenameChat,
+    userRole,
+    onUserRoleChange,
 }: ChatSidebarProps) => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -70,7 +74,7 @@ export const ChatSidebar = ({
                 initial={{ width: 320 }}
                 animate={{ width: sidebarCollapsed ? 0 : 320 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="h-full border-r border-white/40 bg-white/60 backdrop-blur-2xl flex flex-col shadow-2xl overflow-hidden"
+                className="h-full border-r border-white/40 bg-white/60 backdrop-blur-2xl flex flex-col shadow-2xl overflow-y-auto"
             >
                 <div className="flex flex-col h-full min-w-[320px]">
                     {/* Header Section */}
@@ -144,7 +148,7 @@ export const ChatSidebar = ({
                                         ) : (
                                             <div
                                                 onClick={() => onSelectChat(conv.id)}
-                                                className="w-full text-left p-3 flex items-center gap-3 relative overflow-hidden rounded-2xl cursor-pointer"
+                                                className="w-full text-left p-3 flex items-center gap-3 relative rounded-2xl cursor-pointer group/item"
                                             >
                                                 {selectedChat === conv.id && (
                                                     <motion.div
@@ -160,7 +164,7 @@ export const ChatSidebar = ({
                                                     <MessageSquare className="h-5 w-5" />
                                                 </div>
 
-                                                <div className="flex-1 min-w-0 z-10 pr-8">
+                                                <div className="flex-1 min-w-0">
                                                     <div className={`font-semibold text-sm truncate transition-colors ${selectedChat === conv.id ? "text-slate-900" : "text-slate-600 group-hover:text-slate-900"
                                                         }`}>
                                                         {conv.title}
@@ -170,18 +174,21 @@ export const ChatSidebar = ({
                                                     </div>
                                                 </div>
 
-                                                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-50" onClick={(e) => e.stopPropagation()}>
+                                                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-8 w-8 bg-white/90 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-lg shadow-sm border border-slate-100 transition-all"
+                                                                className={`h-8 w-8 rounded-lg transition-all duration-200 ${selectedChat === conv.id
+                                                                    ? "bg-white text-blue-600 shadow-sm hover:bg-blue-50 ring-1 ring-blue-100"
+                                                                    : "bg-slate-100 text-slate-500 hover:bg-white hover:text-blue-600 hover:shadow-sm"
+                                                                    }`}
                                                             >
                                                                 <MoreVertical className="h-4 w-4" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="bg-white/90 backdrop-blur-xl border-white/50 text-slate-700 w-48 shadow-xl rounded-xl p-1">
+                                                        <DropdownMenuContent align="end" className="bg-white/90 backdrop-blur-xl border-white/50 text-slate-700 w-48 shadow-xl rounded-xl p-1 z-50">
                                                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRenameStart(conv); }} className="hover:bg-blue-50 rounded-lg cursor-pointer font-medium">
                                                                 Rename
                                                             </DropdownMenuItem>
@@ -210,7 +217,26 @@ export const ChatSidebar = ({
 
                     {/* Footer */}
                     <div className="p-4 border-t border-white/40 bg-white/30 backdrop-blur-md">
-                        {/* Could add user profile here */}
+                        <div className="flex items-center justify-between bg-white/50 rounded-xl p-1 border border-white/60">
+                            <button
+                                onClick={() => onUserRoleChange("patient")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${userRole === "patient"
+                                    ? "bg-white text-blue-600 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                                    }`}
+                            >
+                                Patient
+                            </button>
+                            <button
+                                onClick={() => onUserRoleChange("clinician")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${userRole === "clinician"
+                                    ? "bg-white text-indigo-600 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                                    }`}
+                            >
+                                Clinician
+                            </button>
+                        </div>
                     </div>
                 </div>
             </motion.div>

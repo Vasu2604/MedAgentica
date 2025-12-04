@@ -25,6 +25,8 @@ const Chat = () => {
     removeImage,
     deleteChat,
     renameChat,
+    userRole,
+    setUserRole,
   } = useChat();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,8 +41,8 @@ const Chat = () => {
   return (
     <div className="flex h-screen w-full overflow-hidden relative bg-slate-50 text-slate-900 font-sans selection:bg-blue-100">
       {/* Premium Animated Background - Light Theme */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-slate-50 to-slate-50 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-indigo-100/40 via-slate-50 to-slate-50 pointer-events-none" />
+      <div className={`absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] ${userRole === 'patient' ? 'from-blue-100/40 via-slate-50 to-slate-50' : 'from-teal-100/40 via-slate-50 to-slate-50'} pointer-events-none transition-colors duration-1000`} />
+      <div className={`absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] ${userRole === 'patient' ? 'from-indigo-100/40 via-slate-50 to-slate-50' : 'from-slate-200/40 via-slate-50 to-slate-50'} pointer-events-none transition-colors duration-1000`} />
 
       {/* Particle System */}
       <Particles />
@@ -53,6 +55,8 @@ const Chat = () => {
         onNewChat={createNewChat}
         onDeleteChat={deleteChat}
         onRenameChat={renameChat}
+        userRole={userRole}
+        onUserRoleChange={setUserRole}
       />
 
       {/* Main Chat Area */}
@@ -66,9 +70,9 @@ const Chat = () => {
         >
           <div className="flex items-center gap-4">
             <div className="relative group cursor-pointer">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-2xl blur-lg opacity-30 group-hover:opacity-60 transition-opacity duration-500" />
+              <div className={`absolute inset-0 bg-gradient-to-r ${userRole === 'patient' ? 'from-blue-400 to-indigo-400' : 'from-teal-400 to-slate-400'} rounded-2xl blur-lg opacity-30 group-hover:opacity-60 transition-opacity duration-500`} />
               <div className="relative h-11 w-11 bg-white/80 rounded-2xl flex items-center justify-center border border-white/60 shadow-sm backdrop-blur-md transition-transform duration-300 group-hover:scale-105">
-                <Activity className="h-6 w-6 text-blue-600" />
+                <Activity className={`h-6 w-6 ${userRole === 'patient' ? 'text-blue-600' : 'text-teal-600'}`} />
               </div>
             </div>
             <div>
@@ -103,12 +107,12 @@ const Chat = () => {
             <div className="h-8 w-[1px] bg-slate-200" />
             <div className="flex items-center gap-3">
               <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-slate-800">Dr. User</p>
-                <p className="text-xs text-blue-600 font-medium">Licensed Clinician</p>
+                <p className="text-sm font-bold text-slate-800">{userRole === 'patient' ? 'Patient View' : 'Dr. User'}</p>
+                <p className={`text-xs ${userRole === 'patient' ? 'text-blue-600' : 'text-teal-600'} font-medium`}>{userRole === 'patient' ? 'Standard Access' : 'Licensed Clinician'}</p>
               </div>
               <Avatar className="h-10 w-10 ring-2 ring-white shadow-lg cursor-pointer hover:scale-105 transition-transform duration-300">
-                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold">
-                  DR
+                <AvatarFallback className={`bg-gradient-to-br ${userRole === 'patient' ? 'from-blue-600 to-indigo-600' : 'from-teal-600 to-slate-600'} text-white font-bold`}>
+                  {userRole === 'patient' ? 'PT' : 'DR'}
                 </AvatarFallback>
               </Avatar>
             </div>

@@ -27,6 +27,7 @@ export interface ChatResponse {
   confidence?: number;
   suggestions?: string[];
   result_image?: string;
+  all_images?: Array<{ type: string; url: string; label: string }>;
 }
 
 export interface UploadResponse {
@@ -36,6 +37,7 @@ export interface UploadResponse {
   thinking?: string;
   suggestions?: string[];
   result_image?: string;
+  all_images?: Array<{ type: string; url: string; label: string }>;
 }
 
 class ApiService {
@@ -44,7 +46,7 @@ class ApiService {
   /**
    * Send a chat message to the backend
    */
-  async sendMessage(query: string, conversationHistory: any[] = [], signal?: AbortSignal): Promise<ChatResponse> {
+  async sendMessage(query: string, conversationHistory: any[] = [], userRole: string = "patient", conversationId: string = "1", signal?: AbortSignal): Promise<ChatResponse> {
     try {
       const response = await fetch(`${this.baseURL}/chat`, {
         method: 'POST',
@@ -55,6 +57,8 @@ class ApiService {
         body: JSON.stringify({
           query,
           conversation_history: conversationHistory,
+          user_role: userRole,
+          conversation_id: conversationId,
         }),
         signal,
       });
@@ -73,11 +77,13 @@ class ApiService {
   /**
    * Upload an image with optional text
    */
-  async uploadImage(file: File, text: string = '', signal?: AbortSignal): Promise<UploadResponse> {
+  async uploadImage(file: File, text: string = '', userRole: string = "patient", conversationId: string = "1", signal?: AbortSignal): Promise<UploadResponse> {
     try {
       const formData = new FormData();
       formData.append('image', file);
       formData.append('text', text);
+      formData.append('user_role', userRole);
+      formData.append('conversation_id', conversationId);
 
       const response = await fetch(`${this.baseURL}/upload`, {
         method: 'POST',
