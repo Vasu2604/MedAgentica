@@ -5,7 +5,7 @@
 cleanup() {
     echo ""
     echo "🛑 Stopping servers..."
-    ./kill_servers.sh
+    ./scripts/kill_servers.sh
     exit
 }
 
@@ -16,7 +16,7 @@ trap cleanup SIGINT
 cd "$(dirname "$0")"
 
 # Kill anything running first
-./kill_servers.sh
+./scripts/kill_servers.sh
 
 echo "---------------------------------------------------"
 echo "🚀 Starting Multi-Agent Medical Assistant"

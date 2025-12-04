@@ -34,7 +34,7 @@ echo "Press Ctrl+C to stop the server"
 echo "="*60
 echo ""
 
-python start_server.py
+python scripts/start_server.py
 
 
 

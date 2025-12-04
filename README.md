@@ -369,14 +369,29 @@ python evaluation/evaluate_rag_llm.py
 
 ---
 
+## 🎥 **Demonstration**
+
+Watch the full demonstration of MedAgentica in action:
+
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/your-video-id-here" controls="controls" style="max-width: 100%;">
+  </video>
+  
+  **[▶️ Watch Full Demo Video](Demonstration/Full%20video.mp4)**
+  
+  *(Note: If the video doesn't play directly, click the link above to download/view it)*
+</div>
+
+---
+
 ## 📁 **Project Structure**
 
 ```
 MedAgentica/
 │
 ├── 🚀 MAIN ENTRY POINTS
-│   ├── start_server.py              # 🌐 Modern: Backend server starter
 │   ├── run_server.sh                # 🚀 Backend launcher script
+│   ├── restart_servers.sh           # 🔄 Restart both servers
 │   └── web/app.py                   # 🌐 FastAPI backend
 │
 ├── 🎨 FRONTEND (Modern Version)
@@ -389,26 +404,24 @@ MedAgentica/
 ├── 🧠 AGENTS (Core System)
 │   ├── agent_decision.py            # Main routing agent
 │   ├── rag_agent/                   # RAG System
-│   │   ├── vectorstore_chroma.py
-│   │   ├── vectorstore_qdrant.py
-│   │   ├── content_processor.py
-│   │   ├── doc_parser.py
-│   │   ├── query_expander.py
-│   │   ├── reranker.py
-│   │   └── response_generator.py
 │   ├── image_analysis_agent/        # Medical Image Analysis
-│   │   ├── image_classifier.py
 │   │   ├── brain_tumor_agent/
 │   │   ├── chest_xray_agent/
 │   │   └── skin_lesion_agent/
 │   ├── web_search_processor_agent/  # Web Search
 │   └── guardrails/                   # Safety & Validation
 │
+├── 📂 SCRIPTS & UTILS
+│   ├── scripts/                     # Helper scripts
+│   │   ├── start_server.py          # Backend starter
+│   │   ├── kill_servers.sh          # Cleanup script
+│   │   └── ingest_rag_data.py       # Data ingestion
+│   └── utils/                       # Utility functions
+│
 ├── 📊 EVALUATION
 │   ├── evaluation/
 │   │   ├── quick_evaluate.py
-│   │   ├── evaluate_rag_llm.py
-│   │   └── check_evaluation_setup.py
+│   │   └── evaluate_rag_llm.py
 │   └── evaluation_results/          # Generated reports (gitignored)
 │
 ├── 🔧 CONFIGURATION
@@ -423,19 +436,19 @@ MedAgentica/
 │   └── docs/                         # Additional docs
 │
 ├── 📜 LEGACY (Archived)
-│   └── legacy/                       # Old standalone scripts
+│   └── legacy/                       # Old standalone scripts & templates
 │       ├── demo_agentic_rag.py
-│       ├── demo_ingest_pinecone.py
+│       ├── web_templates/            # Old HTML templates
 │       └── README_LEGACY.md
 │
-├── 🗄️ DATA (Not in Git)
-│   ├── data/raw/                     # PDF documents
-│   ├── data/chroma_db/               # ChromaDB storage
+├── 🗄️ DATA & LOGS
+│   ├── data/                         # Vector DB & raw data
+│   ├── logs/                         # Server logs
 │   └── uploads/                      # User uploads
 │
 └── 🎨 ASSETS
+    ├── Demonstration/                # Demo videos
     ├── logo_rounded.png
-    ├── final_medical_assistant_flowchart.png
     └── *.mermaid                     # Flowchart source
 ```
 
