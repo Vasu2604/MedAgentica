@@ -371,15 +371,14 @@ python evaluation/evaluate_rag_llm.py
 
 ## 🎥 **Demonstration**
 
-Watch the full demonstration of MedAgentica in action:
+### **[▶️ Click Here to Watch the Full Demo Video](Demonstration/Full%20video.mp4)**
+
+*(Clicking the link above will open the video player in GitHub)*
 
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/your-video-id-here" controls="controls" style="max-width: 100%;">
-  </video>
-  
-  **[▶️ Watch Full Demo Video](Demonstration/Full%20video.mp4)**
-  
-  *(Note: If the video doesn't play directly, click the link above to download/view it)*
+  <a href="Demonstration/Full%20video.mp4">
+    <img src="assets/logo_rounded.png" alt="Watch Demo" width="200"/>
+  </a>
 </div>
 
 ---
